@@ -1319,6 +1319,56 @@ body {
   height: 150px;
   object-fit: contain;
 }
+.moderation-photo-status {
+  align-self: flex-start;
+  margin: 0;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #eef3f1;
+  color: #425950;
+  font-size: 13px;
+  font-weight: 600;
+}
+.moderation-photo-status.approval-approved {
+  background: #e4f3ea;
+  color: #176345;
+}
+.moderation-photo-status.approval-rejected {
+  background: #fff0ef;
+  color: #9b3932;
+}
+.admin-refresh-meta {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.admin-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.admin-section-heading h2 { margin: 0; }
+.admin-record-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #eef3f1;
+  color: #425950;
+  font-size: 13px;
+  font-weight: 600;
+}
+.admin-record-status.is-approved {
+  background: #e4f3ea;
+  color: #176345;
+}
+.admin-record-status.is-rejected {
+  background: #fff0ef;
+  color: #9b3932;
+}
 .portrait-slot img,
 .team-photo-slot img {
   width: 100%;

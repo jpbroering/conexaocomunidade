@@ -15,7 +15,17 @@ const slots = {
   institution: "Parceria — aba Sobre",
 };
 const status = document.getElementById("status"),
-  root = document.getElementById("images");
+  root = document.getElementById("images"),
+  refresh = document.getElementById("refresh-images"),
+  summary = document.getElementById("image-summary");
+let loading = false, actionPending = false, lastSnapshot = "";
+const approvalLabels = {
+  approved: "✓ Aprovada",
+  pending: "Aguardando aprovação",
+  rejected: "✕ Não aprovada",
+};
+const checkedAt = () => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+const message = (text, state = "info") => ccUI.message(status, text, state);
 async function api(url, method = "GET", body) {
   return readApiResponse(
     await ccFetch(url, {
@@ -30,15 +40,22 @@ async function api(url, method = "GET", body) {
   );
 }
 async function act(work) {
+  if (actionPending || loading) return;
+  actionPending = true;
   try {
     root.inert = true;
+    root.setAttribute("aria-busy", "true");
+    message("Salvando alteração…", "pending");
     await work();
-    status.textContent = "Alteração salva.";
-    await load();
+    actionPending = false;
+    const updated = await load({ quiet: true });
+    message(updated ? "Alteração salva. Lista atualizada." : "Alteração salva; não foi possível atualizar a lista. Tente atualizar novamente.", updated ? "success" : "error");
   } catch (e) {
-    status.textContent = e.message;
+    message(e.message, "error");
   } finally {
+    actionPending = false;
     root.inert = false;
+    root.removeAttribute("aria-busy");
   }
 }
 function button(parent, text, work) {
@@ -61,9 +78,7 @@ function upload(parent, label, work) {
   l.append(input);
   parent.append(l);
 }
-async function load() {
-  const data = await api("/api/admin-images"),
-    about = await api("/api/about-images");
+function render(data, about) {
   root.replaceChildren();
   for (const c of data.companies) {
     const panel = document.createElement("section");
@@ -77,18 +92,16 @@ async function load() {
       const img = document.createElement("img");
       img.src = ccImage("/api/company-image?id=" + a.id);
       img.alt = "Foto da empresa";
+      const state = a.approval || "pending";
       const p = document.createElement("p");
-      p.textContent =
-        a.kind +
-        " · " +
-        { approved: "Aprovada", pending: "Aguardando aprovação", rejected: "Não aprovada" }[
-          a.approval
-        ];
+      p.className = `moderation-photo-status approval-${state}`;
+      p.setAttribute("role", "status");
+      p.textContent = `${a.kind} · ${approvalLabels[state] || approvalLabels.pending}`;
       card.append(img, p);
       for (const [text, approval] of [
         ["Aprovar", "approved"],
         ["Não aprovar", "rejected"],
-      ])
+      ].filter(([, approval]) => approval !== state))
         button(card, text, () =>
           api("/api/company-image", "PATCH", { id: a.id, revision: a.revision, approval }),
         );
@@ -155,6 +168,38 @@ async function load() {
   }
   root.append(section);
 }
-load().catch((e) => (status.textContent = e.message));
-
-document.getElementById("refresh-images").onclick = () => act(async () => {});
+async function load({ quiet = false } = {}) {
+  if (loading || actionPending) return false;
+  loading = true;
+  if (!quiet) {
+    ccUI.setBusy(refresh, true, "Atualizando…");
+    root.setAttribute("aria-busy", "true");
+    message("Carregando fila de imagens…", "pending");
+  }
+  try {
+    const [data, about] = await Promise.all([api("/api/admin-images"), api("/api/about-images")]);
+    const snapshot = JSON.stringify([data, about]);
+    if (snapshot !== lastSnapshot) render(data, about);
+    lastSnapshot = snapshot;
+    const counts = data.companies.flatMap(company => company.images).reduce((total, image) => {
+      total[image.approval || "pending"] = (total[image.approval || "pending"] || 0) + 1;
+      return total;
+    }, {});
+    summary.textContent = `${counts.pending || 0} aguardando revisão · ${counts.approved || 0} aprovadas · ${counts.rejected || 0} não aprovadas · Conferido às ${checkedAt()}`;
+    if (!quiet) message("Lista atualizada.", "success");
+    return true;
+  } catch (e) {
+    message(e.message, "error");
+    return false;
+  } finally {
+    loading = false;
+    if (!quiet) {
+      ccUI.setBusy(refresh, false);
+      root.removeAttribute("aria-busy");
+    }
+  }
+}
+refresh.onclick = () => load();
+message("Carregando fila de imagens…", "pending");
+load();
+ccUI.refreshWhileVisible(() => load({ quiet: true }));

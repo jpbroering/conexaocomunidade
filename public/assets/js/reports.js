@@ -2,6 +2,9 @@
 const reportEl = (id) => document.getElementById(id);
 let reportBusy = false,
   reportRows = [],
+  inboxLoading = false,
+  inboxLoaded = false,
+  inboxSnapshot = "",
   reportLocation = null,
   reportLocating = false,
   gpsAddress = "",
@@ -60,127 +63,158 @@ if (reportForm) {
     }
   };
 }
-async function loadInbox() {
+async function loadInbox({ quiet = false } = {}) {
+  if (inboxLoading) return;
+  inboxLoading = true;
+  const refresh = reportEl("inbox-refresh"), summary = reportEl("inbox-summary");
+  if (!quiet) {
+    ccUI.setBusy(refresh, true, "Atualizando…");
+    summary.setAttribute("aria-busy", "true");
+    ccUI.message(summary, inboxLoaded ? "Verificando se há atualizações…" : "Carregando relatos…", "pending");
+  }
   try {
     const data = await reportCall();
     reportRows = data.reports;
     reportEl("inbox-export").hidden = !!data.readOnly;
-    reportEl("inbox-summary").textContent =
-      data.unread + " novo(s) · " + reportRows.length + " relato(s) recebido(s)";
+    ccUI.message(summary, `${data.unread} novo(s) · ${reportRows.length} relato(s) recebido(s) · Atualizado às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`, "success");
     reportEl("inbox-error").textContent = "";
     reportEl("inbox-login").hidden = true;
     reportEl("inbox-tools").hidden = false;
+    inboxLoaded = true;
     const list = reportEl("inbox-list");
-    list.replaceChildren();
-    if (!reportRows.length) {
-      const p = document.createElement("p");
-      p.textContent = "Ainda não há relatos recebidos.";
-      list.append(p);
-    }
-    for (const row of reportRows) {
-      const card = document.createElement("article");
-      card.className = "panel";
-      card.style.marginTop = "18px";
-      const title = document.createElement("h2");
-      title.textContent = row.title;
-      const status = document.createElement("p");
-      status.textContent =
-        (row.read_at ? "" : "NOVO · ") +
-        row.status +
-        " · " +
-        new Date(row.created_at).toLocaleString("pt-BR");
-      const sender = document.createElement("p");
-      sender.textContent = row.anonymous
-        ? "Envio anônimo"
-        : "Nome: " + row.name + (row.contact ? " · Contato: " + row.contact : "");
-      const address = document.createElement("p");
-      address.textContent = "Local: " + row.address;
-      if (row.location && Number.isFinite(row.location.lat) && Number.isFinite(row.location.lng)) {
-        const link = document.createElement("a");
-        link.className = "secondary";
-        link.href =
-          "https://www.google.com/maps/search/?api=1&query=" +
-          row.location.lat +
-          "," +
-          row.location.lng;
-        link.target = "_blank";
-        link.rel = "noreferrer";
-        link.textContent =
-          "📍 Abrir localização fixa · precisão aproximada de " +
-          Math.round(row.location.accuracy) +
-          " m";
-        address.append(document.createElement("br"), link);
+    const snapshot = JSON.stringify([reportRows, !!data.readOnly]);
+    if (snapshot !== inboxSnapshot) {
+      inboxSnapshot = snapshot;
+      list.replaceChildren();
+      if (!reportRows.length) {
+        const p = document.createElement("p");
+        p.textContent = "Ainda não há relatos recebidos.";
+        list.append(p);
       }
-      const description = document.createElement("p");
-      description.style.whiteSpace = "pre-wrap";
-      description.style.overflowWrap = "anywhere";
-      description.textContent = row.description;
-      const actions = document.createElement("div");
-      actions.className = "actions";
-      for (const status of (data.readOnly ? [] : ["Lido", "Aprovado", "Em acompanhamento", "Resolvido", "Rejeitado"])) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = status === "Rejeitado" ? "danger" : "secondary";
-        button.textContent =
-          status === "Lido"
-            ? "Marcar como lido"
-            : status === "Rejeitado"
-              ? "Rejeitar relato"
-              : status === "Aprovado"
-                ? "Aprovar relato"
-                : status;
-        button.onclick = async () => {
-          if (
-            status === "Rejeitado" &&
-            !confirm(
-              "Rejeitar este relato por conteúdo impróprio ou fora do contexto? Ele continuará restrito à administração.",
+      for (const row of reportRows) {
+        const card = document.createElement("article");
+        card.className = "panel";
+        card.style.marginTop = "18px";
+        const title = document.createElement("h2");
+        title.textContent = row.title;
+        const status = document.createElement("p");
+        status.className = "admin-record-status";
+        if (row.approval === "approved" || row.status === "Aprovado") status.classList.add("is-approved");
+        if (row.approval === "rejected" || row.status === "Rejeitado") status.classList.add("is-rejected");
+        status.textContent =
+          (row.read_at ? "" : "NOVO · ") +
+          row.status +
+          " · " +
+          new Date(row.created_at).toLocaleString("pt-BR");
+        const sender = document.createElement("p");
+        sender.textContent = row.anonymous
+          ? "Envio anônimo"
+          : "Nome: " + row.name + (row.contact ? " · Contato: " + row.contact : "");
+        const address = document.createElement("p");
+        address.textContent = "Local: " + row.address;
+        if (row.location && Number.isFinite(row.location.lat) && Number.isFinite(row.location.lng)) {
+          const link = document.createElement("a");
+          link.className = "secondary";
+          link.href =
+            "https://www.google.com/maps/search/?api=1&query=" +
+            row.location.lat +
+            "," +
+            row.location.lng;
+          link.target = "_blank";
+          link.rel = "noreferrer";
+          link.textContent =
+            "📍 Abrir localização fixa · precisão aproximada de " +
+            Math.round(row.location.accuracy) +
+            " m";
+          address.append(document.createElement("br"), link);
+        }
+        const description = document.createElement("p");
+        description.style.whiteSpace = "pre-wrap";
+        description.style.overflowWrap = "anywhere";
+        description.textContent = row.description;
+        const actions = document.createElement("div");
+        actions.className = "actions";
+        for (const status of (data.readOnly ? [] : ["Lido", "Aprovado", "Em acompanhamento", "Resolvido", "Rejeitado"]).filter(value => value !== row.status)) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = status === "Rejeitado" ? "danger" : "secondary";
+          button.textContent =
+            status === "Lido"
+              ? "Marcar como lido"
+              : status === "Rejeitado"
+                ? "Rejeitar relato"
+                : status === "Aprovado"
+                  ? "Aprovar relato"
+                  : status;
+          button.onclick = async () => {
+            if (
+              status === "Rejeitado" &&
+              !confirm(
+                "Rejeitar este relato por conteúdo impróprio ou fora do contexto? Ele continuará restrito à administração.",
+              )
             )
-          )
-            return;
-          if (reportBusy) return;
-          reportBusy = true;
-          actions.querySelectorAll("button").forEach((b) => (b.disabled = true));
-          try {
-            await reportCall("PATCH", { id: row.id, revision: row.revision, status });
-            await loadInbox();
-          } catch (e) {
-            reportEl("inbox-error").textContent = e.message;
-          } finally {
-            reportBusy = false;
-            actions.querySelectorAll("button").forEach((b) => (b.disabled = false));
-          }
-        };
-        actions.append(button);
+              return;
+            if (reportBusy) return;
+            reportBusy = true;
+            ccUI.message(summary, "Salvando a revisão do relato…", "pending");
+            actions.setAttribute("aria-busy", "true");
+            actions.querySelectorAll("button").forEach((b) => (b.disabled = true));
+            try {
+              await reportCall("PATCH", { id: row.id, revision: row.revision, status });
+              await loadInbox({ quiet: true });
+            } catch (e) {
+              ccUI.message(reportEl("inbox-error"), e.message, "error");
+            } finally {
+              reportBusy = false;
+              actions.removeAttribute("aria-busy");
+              actions.querySelectorAll("button").forEach((b) => (b.disabled = false));
+            }
+          };
+          actions.append(button);
+        }
+        const photos = document.createElement("div");
+        photos.className = "report-photo-gallery";
+        for (let i = 0; i < (row.photoCount || row.images?.length || 0); i++) {
+          const image = document.createElement("img");
+          image.alt = "Foto anexada ao relato";
+          image.loading = "lazy";
+          image.src = row.images?.[i]
+            ? "data:" + row.images[i].type + ";base64," + row.images[i].body
+            : ccImage("/api/reports?id=" + encodeURIComponent(row.id) + "&photo=" + i);
+          photos.append(image);
+        }
+        card.append(title, status, sender, address, description, photos, actions);
+        list.append(card);
       }
-      const photos = document.createElement("div");
-      photos.className = "report-photo-gallery";
-      for (let i = 0; i < (row.photoCount || row.images?.length || 0); i++) {
-        const image = document.createElement("img");
-        image.alt = "Foto anexada ao relato";
-        image.loading = "lazy";
-        image.src = row.images?.[i]
-          ? "data:" + row.images[i].type + ";base64," + row.images[i].body
-          : ccImage("/api/reports?id=" + encodeURIComponent(row.id) + "&photo=" + i);
-        photos.append(image);
-      }
-      card.append(title, status, sender, address, description, photos, actions);
-      list.append(card);
     }
   } catch (e) {
-    reportRows = [];
-    reportEl("inbox-list").replaceChildren();
-    reportEl("inbox-tools").hidden = true;
-    reportEl("inbox-error").textContent = e.message;
-    reportEl("inbox-summary").textContent = "Acesso reservado à administração.";
-    reportEl("inbox-login").hidden = false;
+    ccUI.message(reportEl("inbox-error"), e.message, "error");
+    if (!inboxLoaded && [401, 403].includes(e.status)) {
+      reportEl("inbox-tools").hidden = true;
+      summary.textContent = "Acesso reservado à administração.";
+      reportEl("inbox-login").hidden = false;
+    } else if (!inboxLoaded) {
+      summary.textContent = "Não foi possível carregar os relatos. Tente novamente.";
+      reportEl("inbox-tools").hidden = true;
+      reportEl("inbox-login").hidden = true;
+    } else {
+      ccUI.message(summary, "Não foi possível atualizar. Exibindo os dados carregados anteriormente.", "error");
+    }
+  } finally {
+    inboxLoading = false;
+    if (!quiet) {
+      ccUI.setBusy(refresh, false);
+      summary.removeAttribute("aria-busy");
+    }
   }
 }
 if (reportEl("inbox-list")) {
   loadInbox();
   reportEl("inbox-refresh").onclick = () => loadInbox();
-  setInterval(() => {
-    if (!reportBusy && document.visibilityState === "visible") loadInbox();
-  }, 60000);
+  ccUI.refreshWhileVisible(
+    () => loadInbox({ quiet: true }),
+    () => !reportBusy && !inboxLoading,
+  );
   reportEl("inbox-export").onclick = () => {
     const a = document.createElement("a"),
       url = URL.createObjectURL(

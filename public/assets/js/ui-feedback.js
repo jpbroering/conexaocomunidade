@@ -87,6 +87,14 @@
     }
   }
 
+  function refreshWhileVisible(load, canLoad = () => true) {
+    const refresh = () => {
+      if (document.visibilityState === "visible" && canLoad()) load();
+    };
+    window.setInterval(refresh, 60000);
+    document.addEventListener("visibilitychange", refresh);
+  }
+
   document.addEventListener("click", event => {
     if (event.target.closest?.('a[aria-disabled="true"]')) event.preventDefault();
   }, true);
@@ -116,5 +124,5 @@
   });
   window.addEventListener("pageshow", event => { if (event.persisted) clearPageLoading(); });
 
-  window.ccUI = { setBusy, message, showPageLoading, navigate, navigationMessage };
+  window.ccUI = { setBusy, message, refreshWhileVisible, showPageLoading, navigate, navigationMessage };
 })();

@@ -39,7 +39,11 @@
           acompanhar os cadastros e gerenciar o acesso.
         </p>
         <section class="panel">
-          <h2>Contas cadastradas</h2>
+          <div class="admin-section-heading">
+            <h2>Contas cadastradas</h2>
+            <button id="refresh-users" class="secondary" type="button">Atualizar contas</button>
+          </div>
+          <p id="users-meta" class="admin-refresh-meta" aria-live="polite"></p>
           <div id="users"></div>
         </section>
         <form id="reset" class="panel" hidden>

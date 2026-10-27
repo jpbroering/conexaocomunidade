@@ -124,57 +124,85 @@ if (el("login")) {
     });
   };
 }
-async function users() {
-  const d = await call("/api/test-users");
-  el("admin").hidden = false;
-  el("owner-access").hidden = true;
-  el("users").replaceChildren();
-  if (!d.users.length) el("users").textContent = "Nenhuma conta cadastrada ainda.";
-  for (const u of d.users) {
-    const row = document.createElement("article");
-    row.className = "panel";
-    const p = document.createElement("p");
-    p.textContent =
-      u.name +
-      " · " +
-      u.username +
-      " · " +
-      (["owner", "company-admin"].includes(u.role)
-        ? "ADM · acesso completo"
-        : u.role === "company"
-          ? "Empresa"
-          : u.role === "coordination" ? "Coordenação" : "Conta antiga") +
-      " · " +
-      (u.active ? "Ativa" : "Desativada");
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.textContent = u.active ? "Desativar acesso" : "Reativar acesso";
-    toggle.onclick = () =>
-      action(row, async () => {
-        await call("/api/test-users", "POST", {
-          action: "active",
-          username: u.username,
-          revision: u.revision,
-          active: !u.active,
-        });
-        status("Permissão atualizada. Sessões antigas foram encerradas.");
-        await users();
-      });
-    const reset = document.createElement("button");
-    reset.type = "button";
-    reset.textContent = "Redefinir senha";
-    reset.onclick = () => {
-      resetUser = u;
-      el("reset-name").textContent = u.username;
-      el("reset").hidden = false;
-      el("reset").scrollIntoView({ behavior: "smooth" });
-    };
-    row.append(p, toggle, reset);
-    el("users").append(row);
+async function users({ quiet = false } = {}) {
+  if (usersLoading) return;
+  usersLoading = true;
+  const refresh = el("refresh-users"), list = el("users");
+  if (!quiet) {
+    ccUI.setBusy(refresh, true, "Atualizando…");
+    list.setAttribute("aria-busy", "true");
+    status("Carregando contas…", "pending");
+  }
+  try {
+    const d = await call("/api/test-users");
+    el("admin").hidden = false;
+    el("owner-access").hidden = true;
+    const snapshot = JSON.stringify(d.users);
+    if (snapshot !== usersSnapshot) {
+      list.replaceChildren();
+      if (!d.users.length) list.textContent = "Nenhuma conta cadastrada ainda.";
+      for (const u of d.users) {
+        const row = document.createElement("article");
+        row.className = "panel";
+        const p = document.createElement("p");
+        p.textContent =
+          u.name +
+          " · " +
+          u.username +
+          " · " +
+          (["owner", "company-admin"].includes(u.role)
+            ? "ADM · acesso completo"
+            : u.role === "company"
+              ? "Empresa"
+              : u.role === "coordination" ? "Coordenação" : "Conta antiga") +
+          " · " +
+          (u.active ? "Ativa" : "Desativada");
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.textContent = u.active ? "Desativar acesso" : "Reativar acesso";
+        toggle.onclick = () =>
+          action(row, async () => {
+            await call("/api/test-users", "POST", {
+              action: "active",
+              username: u.username,
+              revision: u.revision,
+              active: !u.active,
+            });
+            status("Permissão atualizada. Sessões antigas foram encerradas.");
+            await users();
+          });
+        const reset = document.createElement("button");
+        reset.type = "button";
+        reset.textContent = "Redefinir senha";
+        reset.onclick = () => {
+          resetUser = u;
+          el("reset-name").textContent = u.username;
+          el("reset").hidden = false;
+          el("reset").scrollIntoView({ behavior: "smooth" });
+        };
+        row.append(p, toggle, reset);
+        list.append(row);
+      }
+      usersSnapshot = snapshot;
+    }
+    const active = d.users.filter(user => user.active).length;
+    el("users-meta").textContent = `${d.users.length} contas · ${active} ativas · ${d.users.length - active} desativadas · Conferido às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+    if (!quiet) status("Lista de contas atualizada.", "success");
+  } catch (e) {
+    status(e.message, "error");
+  } finally {
+    usersLoading = false;
+    if (!quiet) {
+      ccUI.setBusy(refresh, false);
+      list.removeAttribute("aria-busy");
+    }
   }
 }
+let usersLoading = false, usersSnapshot = "";
 if (el("users")) {
-  users().catch((e) => status(e.message));
+  el("refresh-users").onclick = () => users();
+  users();
+  ccUI.refreshWhileVisible(() => users({ quiet: true }), () => !pending);
   el("reset").onsubmit = (e) => {
     e.preventDefault();
     if (!resetUser) return;
