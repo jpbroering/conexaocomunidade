@@ -34,7 +34,13 @@ export class FakeGithub {
     if (path === '/git/blobs' && method === 'POST') { const text = body.encoding === 'base64' ? Buffer.from(body.content, 'base64').toString('utf8') : body.content; const sha = await blobSha(text); this.blobs.set(sha, text); return Response.json({ sha }); }
     if (path.startsWith('/git/blobs/') && method === 'GET') { const text = this.blobs.get(path.split('/').pop()); return text === undefined ? fail(404) : Response.json({ content: Buffer.from(text).toString('base64'), encoding: 'base64' }); }
     if (path === '/git/trees' && method === 'POST') { const files = body.base_tree ? this.flatten(body.base_tree) : new Map(); for (const entry of body.tree) entry.sha === null ? files.delete(entry.path) : files.set(entry.path, entry.sha); return Response.json({ sha: this.tree(files) }); }
-    if (path.startsWith('/git/trees/') && method === 'GET') return Response.json({ tree: this.trees.get(path.split('/').pop()), truncated: false });
+    if (path.startsWith('/git/trees/') && method === 'GET') {
+      const sha = path.split('/').pop();
+      const tree = url.searchParams.has('recursive')
+        ? [...this.flatten(sha)].map(([path, sha]) => ({ path, sha, type: 'blob', mode: '100644' }))
+        : this.trees.get(sha);
+      return Response.json({ tree, truncated: false });
+    }
     if (path === '/git/commits' && method === 'POST') return Response.json({ sha: this.commit(body.tree, body.parents) });
     if (path.startsWith('/git/commits/') && method === 'GET') return Response.json(this.commits.get(path.split('/').pop()));
     if (path === '/git/refs' && method === 'POST') { if (this.head) return fail(422); this.head = body.sha; return Response.json({ ref: body.ref }); }

@@ -30,9 +30,18 @@ export async function list(kind: string) {
   let cursor: string | undefined;
   do {
     const page = await context().transaction.list({ prefix, cursor, limit: 100 });
-    for (const { key: path } of page.objects) {
-      const id = decodeURIComponent(path.slice(prefix.length, -5)), row = await read(kind, id);
-      if (row) result.push({ id, ...row });
+    for (let offset = 0; offset < page.objects.length; offset += 4) {
+      // Settle the whole batch before returning an error: reads share the
+      // operation context, which must not be released while they are running.
+      const rows = await Promise.allSettled(page.objects.slice(offset, offset + 4).map(async ({ key: path }) => {
+        const id = decodeURIComponent(path.slice(prefix.length, -5));
+        const row = await read(kind, id);
+        return row ? { id, ...row } : null;
+      }));
+      for (const row of rows) {
+        if (row.status === 'rejected') throw row.reason;
+        if (row.value) result.push(row.value);
+      }
     }
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);

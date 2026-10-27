@@ -6,6 +6,8 @@ A base ativa é fictícia e usa uma chave nova. O acervo anterior continua nos c
 
 Cada requisição usa uma fotografia da branch e prepara seus arquivos em memória. Uma operação bem-sucedida cria blobs, árvore e commit, avançando a referência sem força. Falhas descartam as alterações preparadas. Alterações independentes podem ser reaplicadas; alterações nos arquivos lidos ou na composição das coleções observadas retornam conflito.
 
+O carregamento consulta a árvore recursiva em uma requisição e volta à leitura por pastas se a resposta estiver truncada, conforme a [API de árvores do GitHub](https://docs.github.com/en/rest/git/trees#get-a-tree). As coleções leem até quatro registros simultaneamente e aguardam o lote terminar, inclusive em caso de erro, antes de liberar o contexto da operação. Árvores e arquivos imutáveis são reaproveitados em memória; a referência da branch continua sendo conferida em cada operação. O catálogo distingue carregamento, falha e resultado vazio.
+
 A interface confirma a gravação depois da atualização da referência. Não há fila persistente de gravações offline. Exclusões removem arquivos da versão ativa; o histórico Git conserva os commits anteriores.
 
 Actions Secrets fornece `PROTOTYPE_GITHUB_TOKEN` e `PROTOTYPE_DATA_KEY_V1` ao build. Seus valores não entram nos fontes nem nos logs, mas são publicados em `runtime-config.json` e ficam acessíveis no navegador. O risco foi aceito para o protótipo com dados fictícios. Contents read/write alcança as branches do repositório escolhido, não apenas uma pasta.

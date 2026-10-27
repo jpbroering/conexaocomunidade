@@ -68,7 +68,13 @@ export class GithubStore {
     if (this.snapshots.has(commitSha)) return this.snapshots.get(commitSha);
     const commit = await this.api('/git/commits/' + encodeURIComponent(commitSha));
     const objects = new Map();
-    // Non-recursive traversal avoids the truncation limits of recursive trees.
+    const recursiveKey = commit.tree.sha + '?recursive=1';
+    let recursiveTree = this.trees.get(recursiveKey);
+    if (!recursiveTree) {
+      recursiveTree = await this.api('/git/trees/' + recursiveKey);
+      this.trees.set(recursiveKey, recursiveTree);
+    }
+    // Large trees can be truncated; only trust a complete recursive response.
     const walk = async (sha, path) => {
       let tree = this.trees.get(sha);
       if (!tree) { tree = await this.api('/git/trees/' + sha); this.trees.set(sha, tree); }
@@ -79,7 +85,13 @@ export class GithubStore {
         else if (entry.type === 'blob' && validPath(name)) objects.set(name, entry.sha);
       }
     };
-    await walk(commit.tree.sha, '');
+    if (recursiveTree.truncated) {
+      await walk(commit.tree.sha, '');
+    } else {
+      for (const entry of recursiveTree.tree) {
+        if (entry.type === 'blob' && validPath(entry.path)) objects.set(entry.path, entry.sha);
+      }
+    }
     const snapshot = { head: commitSha, tree: commit.tree.sha, objects };
     this.snapshots.set(commitSha, snapshot);
     if (this.snapshots.size > 16) this.snapshots.delete(this.snapshots.keys().next().value);

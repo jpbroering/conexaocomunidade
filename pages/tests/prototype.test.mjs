@@ -183,3 +183,58 @@ test('the browser fetch function keeps its global receiver', async () => {
     assert.equal((await new GithubStore(config).snapshot()).head, github.head);
   } finally { globalThis.fetch = original; }
 });
+
+test('cold snapshots use one recursive tree request and reuse immutable snapshots', async () => {
+  const { github } = await setup(), store = new GithubStore(config, github.fetch);
+  const snapshot = await store.snapshot();
+  assert.deepEqual(snapshot.objects, github.files());
+  assert.equal(github.calls.length, 3, 'read the reference, commit and one recursive tree');
+  const cached = await store.snapshot();
+  assert.equal(cached, snapshot);
+  assert.equal(github.calls.length, 4, 'only recheck the branch reference');
+});
+
+test('truncated recursive trees fall back to complete subtree traversal', async () => {
+  const { github } = await setup();
+  const store = new GithubStore(config, async (url, init) => {
+    const response = await github.fetch(url, init);
+    if (new URL(url).searchParams.has('recursive')) {
+      const tree = await response.json();
+      return Response.json({ ...tree, tree: tree.tree.slice(0, 1), truncated: true });
+    }
+    return response;
+  });
+  assert.deepEqual((await store.snapshot()).objects, github.files());
+  assert(github.calls.filter(c => c.path.startsWith('/git/trees/')).length > 1);
+});
+
+test('catalogue reads records concurrently and waits for failed batches before the next operation', async () => {
+  const { github } = await setup();
+  const originalPath = [...seed.records.keys()].find(p => p.includes('/companies/'));
+  const original = await openJson(master, originalPath, JSON.parse(seed.records.get(originalPath)));
+  for (let i = 0; i < 6; i++) {
+    const path = recordKey('companies', crypto.randomUUID());
+    await github.mutate(path, JSON.stringify({ version: 1, ...await sealJson(master, path, original) }));
+  }
+  let active = 0, peak = 0;
+  const visitor = createClient(config, { fetch: async (url, init) => {
+    const path = new URL(url).pathname;
+    if (path.includes('/git/ref/')) assert.equal(active, 0, 'previous reads must finish before the next operation');
+    if (!path.includes('/git/blobs/')) return github.fetch(url, init);
+    active++;
+    peak = Math.max(peak, active);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 10));
+      return await github.fetch(url, init);
+    } finally { active--; }
+  } });
+  assert.equal((await call(visitor, 'companies')).status, 200);
+  assert.equal(peak, 4, 'read at most four records at once even with a larger catalogue');
+  const path = [...seed.records.keys()].find(p => p.includes('/companies/'));
+  await github.mutate(path, JSON.stringify({ version: 1, iv: 'broken', body: 'broken' }));
+  const failedCatalogue = call(visitor, 'companies');
+  const nextOperation = call(visitor, 'auth');
+  assert.equal((await failedCatalogue).status, 503);
+  assert.equal((await nextOperation).status, 200);
+  assert.equal(active, 0);
+});

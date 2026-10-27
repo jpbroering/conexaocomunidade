@@ -65,7 +65,18 @@ try {
   await signup.waitForURL(/teste\.html\?area=business/);
   await signup.locator('#company-form').waitFor();
   await signupContext.close();
-  await first.goto(base); await first.locator('#catalogue .company-card').first().waitFor();
+  let releaseCatalogue;
+  const catalogueGate = new Promise(resolve => { releaseCatalogue = resolve; });
+  const referenceRoute = '**/git/ref/heads/dados-prototipo';
+  await firstContext.route(referenceRoute, async route => { await catalogueGate; await route.fallback(); });
+  try {
+    await first.goto(base);
+    await first.locator('#catalogue-status').filter({ hasText: 'Carregando empresas' }).waitFor();
+    assert.equal(await first.locator('#empty').isVisible(), false, 'do not show an empty catalogue before it loads');
+  } finally { releaseCatalogue(); }
+  await first.locator('#catalogue .company-card').first().waitFor();
+  assert.equal(await first.locator('#catalogue-status').isVisible(), false);
+  await firstContext.unroute(referenceRoute);
   const account = seed.accounts.find(a => a.role === 'company');
   await first.goto(base + 'entrar.html');
   await first.locator('#login [name=username]').fill(account.username);
@@ -91,6 +102,13 @@ try {
   await first.goto(base); await first.locator('#catalogue .company-card').first().waitFor();
   await mkdir(resolve(directory, '../.prototype'), { recursive: true });
   await first.screenshot({ path: resolve(directory, '../.prototype/browser-check.png'), fullPage: true });
+  const unavailableContext = await createContext();
+  await unavailableContext.route(referenceRoute, route => route.fulfill({ status: 401, headers: { 'Access-Control-Allow-Origin': '*' }, json: { message: 'Bad credentials' } }));
+  const unavailable = await unavailableContext.newPage();
+  await unavailable.goto(base);
+  await unavailable.locator('#catalogue-status').filter({ hasText: 'Não foi possível carregar' }).waitFor();
+  assert.equal(await unavailable.locator('#empty').isVisible(), false, 'a failed load is not an empty catalogue');
+  await unavailableContext.close();
   assert.deepEqual(errors, [], 'Browser errors'); assert.deepEqual(failed, [], 'Missing local assets');
   assert(!external.some(url => /chatgpt\.site|pages-bridge/.test(url)));
   await first.waitForFunction(() => !!navigator.serviceWorker.controller);

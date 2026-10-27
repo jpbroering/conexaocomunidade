@@ -6,6 +6,7 @@ const connected =
   location.hostname === "127.0.0.1";
 let suggestionOpen = false;
 let catalogueLimit = 24;
+let catalogueState = "loading";
 let companyAccess = false;
 let adminAccess = false;
 let companies = [],
@@ -159,6 +160,18 @@ function filtered() {
   return origin ? list.sort((a, b) => (km(a) ?? Infinity) - (km(b) ?? Infinity)) : list;
 }
 function renderCatalogue() {
+  const ready = catalogueState === "ready";
+  $("catalogue-status").hidden = ready;
+  if (!ready) {
+    const message = catalogueState === "error"
+      ? "Não foi possível carregar as empresas. Confira a conexão e recarregue a página."
+      : "Carregando empresas…";
+    $("catalogue-status").textContent = message;
+    $("count").textContent = catalogueState === "error" ? "Catálogo indisponível" : message;
+    $("empty").hidden = true;
+    $("more-companies").hidden = true;
+    return;
+  }
   suggestions();
   const list = filtered();
   $("more-companies").hidden = list.length <= catalogueLimit;
@@ -321,6 +334,10 @@ function editCompany(c) {
 async function load() {
   if (loading) return false;
   loading = true;
+  if (catalogueState !== "ready") {
+    catalogueState = "loading";
+    renderCatalogue();
+  }
   try {
     const data = await api("/api/companies");
     accessRequired = false;
@@ -355,6 +372,7 @@ async function load() {
       : "Cadastrar minha empresa";
     $("access-notice").hidden = true;
     companies = data.companies;
+    catalogueState = "ready";
     if (["owner", "company-admin"].includes(data.user?.role)) showAdminNotice();
     directoryInfo(data);
     renderCatalogue();
@@ -389,6 +407,10 @@ async function load() {
         : null;
     return true;
   } catch (e) {
+    if (catalogueState !== "ready") {
+      catalogueState = "error";
+      renderCatalogue();
+    }
     tell(e.message, true);
     return false;
   } finally {
@@ -763,7 +785,10 @@ if (connected) {
     if (document.visibilityState === "visible" && currentView === "client" && !accessRequired)
       load();
   }, 60000);
-} else renderCatalogue();
+} else {
+  catalogueState = "error";
+  renderCatalogue();
+}
 
 let installPrompt = null;
 window.addEventListener("beforeinstallprompt", (e) => {
