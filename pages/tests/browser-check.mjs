@@ -48,6 +48,19 @@ try {
   };
   const firstContext = await createContext(), secondContext = await createContext();
   const first = await firstContext.newPage(), second = await secondContext.newPage();
+  const signupContext = await createContext(), signup = await signupContext.newPage();
+  await signup.goto(base + 'cadastro.html');
+  const signupForm = signup.locator('#signup-company');
+  const signupUsername = signupForm.locator('[name=username]');
+  await signupUsername.fill('usuário inválido');
+  assert.equal(await signupUsername.evaluate(input => input.validity.patternMismatch), true);
+  for (const [name, value] of Object.entries({ name: 'Empresa criada pelo formulário', email: 'teste@example.com', username: 'cadastro.navegador-teste', password: 'Senha longa do cadastro fictício!', confirmPassword: 'Senha longa do cadastro fictício!' })) {
+    await signupForm.locator(`[name=${name}]`).fill(value);
+  }
+  await signupForm.locator('button').click();
+  await signup.waitForURL(/teste\.html\?area=business/);
+  await signup.locator('#company-form').waitFor();
+  await signupContext.close();
   await first.goto(base); await first.locator('#catalogue .company-card').first().waitFor();
   const account = seed.accounts.find(a => a.role === 'company');
   await first.goto(base + 'entrar.html');
@@ -82,5 +95,5 @@ try {
   await new Promise(resolve => { server.close(resolve); server.closeAllConnections(); });
   await firstContext.setOffline(true); await first.goto(base + 'entrar.html');
   await first.getByRole('heading', { name: /reconectar|conexão|offline|internet/i }).waitFor();
-  console.log('PASS: interface em subpasta, scrypt no Worker, login, gravação entre dois navegadores, imagem decifrada, mapa, recuperação administrativa, escopo PWA e página offline.');
+  console.log('PASS: cadastro pelo formulário, validação de usuário, interface em subpasta, scrypt no Worker, login, gravação entre dois navegadores, imagem decifrada, mapa, recuperação administrativa, escopo PWA e página offline.');
 } catch (error) { console.error(JSON.stringify({ pageErrors: errors, failedAssets: failed, githubCalls: github.calls.slice(-8), messages: await Promise.all(openPages.map(p => p.evaluate(() => document.getElementById("message")?.textContent).catch(() => "closed"))) })); throw error; } finally { await browser?.close(); if (server.listening) await new Promise(resolve => server.close(resolve)); }

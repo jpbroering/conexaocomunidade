@@ -9,7 +9,10 @@ const sessions = {
 };
 const client = fetch(new URL('runtime-config.json', baseUrl), { cache: 'no-store' }).then(async response => {
   if (!response.ok) throw new StoreError('O protótipo ainda não foi configurado pela equipe.');
-  return createClient(validateConfig(await response.json()), { sessions, baseUrl });
+  let config;
+  try { config = await response.json(); }
+  catch { throw new StoreError('A configuração publicada do protótipo está inválida. Recarregue a página; se continuar, avise a equipe responsável.'); }
+  return createClient(validateConfig(config), { sessions, baseUrl });
 });
 // Attach a rejection handler immediately, including on presentation-only pages.
 client.catch(() => {});
