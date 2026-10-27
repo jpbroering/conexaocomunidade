@@ -372,6 +372,8 @@ function renderSuggestions(open = true) {
 async function load() {
   if (busy) return;
   busy = true;
+  const loadingMessage = currentTab === "account" ? "Carregando sua conta…" : "Carregando o mapa comunitário…";
+  const finishLoading = !loaded ? ccUI.showPageLoading(loadingMessage) : () => {};
   if (!loaded) status("Carregando locais da comunidade…", "pending");
   try {
     const controller = new AbortController(),
@@ -398,6 +400,7 @@ async function load() {
     );
   } finally {
     busy = false;
+    finishLoading();
   }
 }
 e("map-search").oninput = () => {

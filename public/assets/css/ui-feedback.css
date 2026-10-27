@@ -13,6 +13,58 @@
   animation: cc-spin .8s linear infinite;
 }
 button[aria-busy="true"] { cursor: wait; }
+.cc-page-loading {
+  position: fixed;
+  inset-block-start: max(20px, env(safe-area-inset-top));
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: min(430px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 22px 24px;
+  border: 1px solid #b7d6ca;
+  border-radius: 14px;
+  background: #fff;
+  color: #183f33;
+  box-shadow: 0 8px 28px #18333226;
+  font-size: 17px;
+  line-height: 1.5;
+}
+.cc-page-loading[hidden] { display: none; }
+.cc-page-loading .cc-loading { flex-shrink: 0; }
+.cc-page-loading .cc-loading::before {
+  display: block;
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  border-width: 3px;
+}
+#catalogue-status:not([hidden]) {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  min-height: 144px;
+  padding: 24px;
+  box-sizing: border-box;
+  border: 1px solid #d5e6de;
+  border-radius: 12px;
+  background: #fbfefc;
+  color: #244b3d;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+#catalogue-status.cc-loading::before {
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  border-width: 3px;
+}
 .cc-feedback:not([hidden]):not(:empty) {
   padding: 10px 12px;
   border-inline-start: 3px solid #a8c5bb;

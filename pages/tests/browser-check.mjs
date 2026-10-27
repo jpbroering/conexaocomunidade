@@ -47,6 +47,17 @@ try {
     return context;
   };
   const firstContext = await createContext(), secondContext = await createContext();
+  const referenceRoute = '**/git/ref/heads/dados-prototipo';
+  async function holdPageReads(context, pageName) {
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    const handler = async route => {
+      if (new URL(route.request().frame().url()).pathname.endsWith('/' + pageName)) await gate;
+      await route.fallback();
+    };
+    await context.route(referenceRoute, handler);
+    return async () => { release(); await context.unroute(referenceRoute, handler); };
+  }
   // Exercise Firefox's missing Request.body with both JSON and image forms.
   const withoutRequestStream = () => Object.defineProperty(Request.prototype, 'body', { configurable: true, get: () => undefined });
   await firstContext.addInitScript(withoutRequestStream);
@@ -64,22 +75,35 @@ try {
   await signupForm.locator('[name=confirmPassword]').fill('Confirmação diferente e longa!');
   await signupForm.locator('button').click();
   await signup.getByRole('alert').filter({ hasText: 'As senhas precisam ser iguais' }).waitFor();
+  await signup.locator('.cc-page-loading').waitFor({ state: 'hidden' });
   assert.equal(await signupUsername.inputValue(), 'cadastro.navegador-teste');
   assert.equal(await signupForm.locator('button').isEnabled(), true);
   await signupForm.locator('[name=confirmPassword]').fill('Senha longa do cadastro fictício!');
-  await signupForm.locator('button').click();
-  await signup.waitForURL(/teste\.html\?area=business/);
+  const releaseSignup = await holdPageReads(signupContext, 'cadastro.html');
+  const releaseAccount = await holdPageReads(signupContext, 'teste.html');
+  try {
+    await signupForm.locator('button').click();
+    await signup.locator('.cc-page-loading').filter({ hasText: 'Criando sua conta' }).waitFor();
+    await releaseSignup();
+    await signup.waitForURL(/teste\.html\?area=business/);
+    await signup.locator('.cc-page-loading').filter({ hasText: 'Carregando sua conta' }).waitFor();
+    await mkdir(resolve(directory, '../.prototype'), { recursive: true });
+    await signup.screenshot({ path: resolve(directory, '../.prototype/account-loading-check.png'), fullPage: true });
+  } finally { await releaseSignup(); await releaseAccount(); }
   await signup.locator('#company-form').waitFor();
+  await signup.locator('.cc-page-loading').waitFor({ state: 'hidden' });
   await signupContext.close();
   let releaseCatalogue;
   const catalogueGate = new Promise(resolve => { releaseCatalogue = resolve; });
-  const referenceRoute = '**/git/ref/heads/dados-prototipo';
   await firstContext.route(referenceRoute, async route => { await catalogueGate; await route.fallback(); });
   try {
     await first.goto(base);
     await first.locator('#catalogue-status').filter({ hasText: 'Carregando empresas' }).waitFor();
     assert.equal(await first.locator('#empty').isVisible(), false, 'do not show an empty catalogue before it loads');
     assert.equal(await first.locator('#catalogue-status').evaluate(element => getComputedStyle(element, '::before').animationName), 'cc-spin');
+    const loadingBox = await first.locator('#catalogue-status').boundingBox();
+    assert(loadingBox.height >= 144);
+    assert.equal(await first.locator('#catalogue-status').evaluate(element => getComputedStyle(element).textAlign), 'center');
     await first.emulateMedia({ reducedMotion: 'reduce' });
     assert.equal(await first.locator('#catalogue-status').evaluate(element => getComputedStyle(element, '::before').animationName), 'none');
     await first.emulateMedia({ reducedMotion: 'no-preference' });
@@ -93,7 +117,11 @@ try {
   await first.goto(base + 'entrar.html');
   await first.locator('#login [name=username]').fill(account.username);
   await first.locator('#login [name=password]').fill(account.password);
-  await first.locator('#login button').click();
+  const releaseLogin = await holdPageReads(firstContext, 'entrar.html');
+  try {
+    await first.locator('#login button').click();
+    await first.locator('.cc-page-loading').filter({ hasText: 'Entrando na sua conta' }).waitFor();
+  } finally { await releaseLogin(); }
   await first.waitForURL(/teste\.html/); // Uses the real browser scrypt Worker.
   await first.locator('#business-account-nav').click();
   await first.locator('#company-form [name=name]').fill('Empresa fictícia conferida no navegador');
@@ -109,8 +137,24 @@ try {
   const scope = await first.evaluate(async () => { const registration = await navigator.serviceWorker.ready; return registration.scope; });
   assert.equal(scope, base);
   const manifest = await (await second.request.get(base + 'manifest.webmanifest')).json(); assert.equal(new URL(manifest.scope, base).href, base);
-  await second.goto(base + 'comunidade.html'); await second.locator('#community-status').waitFor({ state: 'hidden' });
+  const releaseMap = await holdPageReads(secondContext, 'comunidade.html');
+  try {
+    await second.getByRole('link', { name: 'Mapa comunitário', exact: true }).click();
+    await second.locator('.cc-page-loading').filter({ hasText: 'Carregando o mapa comunitário' }).waitFor();
+    await second.screenshot({ path: resolve(directory, '../.prototype/map-loading-check.png'), fullPage: true });
+  } finally { await releaseMap(); }
+  await second.locator('#community-status').waitFor({ state: 'hidden' });
+  await second.locator('.cc-page-loading').waitFor({ state: 'hidden' });
   await second.goto(base + 'recuperar.html'); await second.getByText('Solicite à administração', { exact: false }).waitFor();
+  await first.getByRole('button', { name: 'Sou empresa', exact: true }).click();
+  const releaseBusiness = await holdPageReads(firstContext, 'teste.html');
+  try {
+    await first.locator('#business-entry').click();
+    await first.waitForURL(/teste\.html\?area=business/);
+    await first.locator('.cc-page-loading').filter({ hasText: 'Carregando sua conta' }).waitFor();
+  } finally { await releaseBusiness(); }
+  await first.locator('#company-form').waitFor();
+  await first.locator('.cc-page-loading').waitFor({ state: 'hidden' });
   await first.goto(base); await first.locator('#catalogue .company-card').first().waitFor();
   await mkdir(resolve(directory, '../.prototype'), { recursive: true });
   await first.screenshot({ path: resolve(directory, '../.prototype/browser-check.png'), fullPage: true });

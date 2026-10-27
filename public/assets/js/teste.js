@@ -9,6 +9,8 @@ let catalogueLimit = 24;
 let catalogueState = "loading";
 let companyAccess = false;
 let adminAccess = false;
+let finishAccountLoading = () => {};
+let initialAccountLoading = ccUI.navigationMessage === "Carregando sua conta…";
 let companies = [],
   companyId = null,
   companyRevision = null,
@@ -49,6 +51,10 @@ function switchView(view) {
   if (!document.getElementById(view)?.classList.contains("view")) return;
   if (view === "business-panel" && adminAccess && !companyId) form.hidden = true;
   currentView = view;
+  finishAccountLoading();
+  if (catalogueState === "loading" && (initialAccountLoading || ["business", "business-panel"].includes(view))) {
+    finishAccountLoading = ccUI.showPageLoading("Carregando sua conta…");
+  }
   const viewUrl = new URL(location.href);
   viewUrl.searchParams.set("area", view);
   history.replaceState(null, "", viewUrl);
@@ -341,6 +347,10 @@ async function load() {
   if (catalogueState !== "ready") {
     catalogueState = "loading";
     renderCatalogue();
+    if (initialAccountLoading || ["business", "business-panel"].includes(currentView)) {
+      finishAccountLoading();
+      finishAccountLoading = ccUI.showPageLoading("Carregando sua conta…");
+    }
   }
   try {
     const data = await api("/api/companies");
@@ -419,6 +429,8 @@ async function load() {
     return false;
   } finally {
     loading = false;
+    finishAccountLoading();
+    initialAccountLoading = false;
   }
 }
 $("retry-catalogue").onclick = () => {

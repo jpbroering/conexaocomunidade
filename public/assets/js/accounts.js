@@ -25,12 +25,16 @@ async function action(form, work) {
   buttons.forEach(({ button }) => { button.disabled = true; });
   form.setAttribute("aria-busy", "true");
   status(label, "pending");
+  const finishLoading = ["login", "signup-company"].includes(form.id)
+    ? ccUI.showPageLoading(form.id === "login" ? "Entrando na sua conta…" : "Criando sua conta…")
+    : () => {};
   try {
     await work();
   } catch (e) {
     status(e.message, "error");
   } finally {
     pending = false;
+    finishLoading();
     ccUI.setBusy(submit, false);
     buttons.forEach(({ button, disabled }) => { button.disabled = disabled; });
     form.removeAttribute("aria-busy");
@@ -43,18 +47,20 @@ if (el("login")) {
     e.preventDefault();
     action(e.target, async () => {
       const result = await call("/api/auth", "POST", fields(e.target));
-      if (result.role === "coordination") {location.href = "./coordenacao.html";return;}
+      if (result.role === "coordination") {ccUI.navigate("./coordenacao.html");return;}
       e.target.reset();
-      location.href =
+      ccUI.navigate(
         new URLSearchParams(location.search).get("next") === "app"
           ? "./comunidade.html?app=1&view=account"
           : new URLSearchParams(location.search).get("next") === "reports"
             ? "./admin-relatos.html"
             : new URLSearchParams(location.search).get("next") === "business"
               ? "./teste.html?area=business"
-              : "./teste.html";
+              : "./teste.html",
+      );
     });
   };
+  const finishLoading = ccUI.showPageLoading("Verificando sua conta…");
   call("/api/auth")
     .then((d) => {
       if (d.user) {
@@ -101,7 +107,8 @@ if (el("login")) {
           });
       }
     })
-    .catch((e) => status(e.message));
+    .catch((e) => status(e.message, "error"))
+    .finally(finishLoading);
   el("change").onsubmit = (e) => {
     e.preventDefault();
     action(e.target, async () => {
@@ -207,7 +214,7 @@ if (el("signup-company")) {
         password: data.password,
       });
       form.reset();
-      location.href = "./teste.html?area=business";
+      ccUI.navigate("./teste.html?area=business");
     });
   };
   call("/api/auth")
