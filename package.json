@@ -6,7 +6,7 @@
     "dev": "npm run build && npm start",
     "build": "node pages/build.mjs",
     "start": "node scripts/serve-pages.mjs",
-    "test": "node pages/tests/prototype.test.mjs && node pages/tests/static.test.mjs",
+    "test": "node pages/tests/request-body.test.mjs && node pages/tests/prototype.test.mjs && node pages/tests/static.test.mjs",
     "test:pages": "npm test",
     "test:browser": "node pages/tests/browser-check.mjs",
     "prototype:prepare": "node pages/manage.mjs prepare",
