@@ -1,7 +1,7 @@
 async function load() {
   const status = document.getElementById("status");
   try {
-    const d = await readApiResponse(await fetch("/api/admin-activity", { cache: "no-store" }));
+    const d = await readApiResponse(await ccFetch("/api/admin-activity", { cache: "no-store" }));
     const root = document.getElementById("events");
     root.replaceChildren();
     for (const e of d.events) {

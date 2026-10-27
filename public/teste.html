@@ -1,10 +1,11 @@
 <!doctype html>
 <html lang="pt-BR">
   <head>
+    <script src="./prototype.js"></script>
     <script>
       try {
         const app = /; wv\)|ComunidadeConectadaApp/.test(navigator.userAgent) || matchMedia("(display-mode: standalone)").matches || sessionStorage.getItem("cc-app") === "1";
-        if (app && !new URLSearchParams(location.search).has("area")) location.replace("/comunidade.html?app=1");
+        if (app && !new URLSearchParams(location.search).has("area")) location.replace("./comunidade.html?app=1");
       } catch (_) {}
     </script>
 
@@ -13,28 +14,28 @@
     <meta name="theme-color" content="#126654" />
     <meta
       name="description"
-      content="Demonstração privada do Conexão Comunidade para empresas e clientes"
+      content="Protótipo Conexão Comunidade com dados fictícios para demonstração"
     />
     <title>Conexão Comunidade • Empresas e clientes</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="favicon.svg" />
     <link rel="stylesheet" href="teste.css" />
-    <link rel="stylesheet" href="/fundos-paginas.css" />
-    <link rel="stylesheet" href="/mobile-home.css" />
-  <link rel="stylesheet" href="/brand-name.css" />
-<script src="/brand-name.js" defer></script>
+    <link rel="stylesheet" href="./fundos-paginas.css" />
+    <link rel="stylesheet" href="./mobile-home.css" />
+  <link rel="stylesheet" href="./brand-name.css" />
+<script src="./brand-name.js" defer></script>
 </head>
   <body data-background-view="cliente">
     <header>
       <a class="brand" href="teste.html"
-        ><img class="brand-mark" src="/favicon.svg" alt="" width="42" height="42" /><span
+        ><img class="brand-mark" src="./favicon.svg" alt="" width="42" height="42" /><span
           >conexão<b>comunidade</b></span
         ></a
       >
       <div class="support-brand">
         <span>Apoio</span
         ><img
-          src="/brand/fmp-logo.png"
+          src="./brand/fmp-logo.png"
           alt="FMP — Faculdade Municipal de Palhoça"
           width="180"
           height="66"
@@ -43,7 +44,7 @@
       <a
         id="connected-profile"
         class="connected-profile"
-        href="/entrar.html"
+        href="./entrar.html"
         aria-label="Abrir meu perfil"
         hidden
         ><span id="profile-avatar" class="profile-avatar" aria-hidden="true"></span
@@ -51,30 +52,24 @@
           ><b id="profile-name"></b><small id="profile-role"></small
           ><small>Abrir meu perfil</small></span
         ></a
-      ><span class="test-badge">VERSÃO DE TESTES</span
+      ><span class="test-badge">TESTES · DADOS FICTÍCIOS</span
       ><button id="install-app" class="secondary">
-        <img src="/brand/android.svg" alt="" width="24" height="24" />Instalar app</button
-      ><a id="signin" href="/entrar.html">Entrar</a>
+        <img src="./brand/android.svg" alt="" width="24" height="24" />Instalar app</button
+      ><a id="signin" href="./entrar.html">Entrar</a>
     </header>
-    <div id="offline" class="notice" hidden>
-      Este HTML permite visualizar a interface. Para salvar com criptografia no servidor e testar
-      contas,
-      <a href="https://conexao-comunidade-frei-damiao.eugenio-frois.chatgpt.site/teste.html"
-        >abra a versão conectada</a
-      >.
-    </div>
+    <div id="offline" class="notice" hidden>Conecte-se à internet para consultar e salvar os dados do protótipo.</div>
     <nav aria-label="Áreas do aplicativo">
       <button data-view="client" class="active">Sou cliente</button
       ><button data-view="business">Sou empresa</button
       ><button id="business-account-nav" data-view="business-panel" hidden>Minha empresa</button
-      ><button data-view="about">Sobre</button><a href="/comunidade.html">Mapa comunitário</a>
+      ><button data-view="about">Sobre</button><a href="./comunidade.html">Mapa comunitário</a>
     </nav>
     <main>
       <div id="access-notice" class="notice" hidden>
         Entre na conta da empresa para salvar e gerenciar seus cadastros.
-        <a href="/entrar.html">Entrar na conta</a>
+        <a href="./entrar.html">Entrar na conta</a>
       </div>
-      <a id="admin-report-notice" class="notice" href="/admin-relatos.html" hidden></a>
+      <a id="admin-report-notice" class="notice" href="./admin-relatos.html" hidden></a>
       <div id="message" role="status" aria-live="polite"></div>
       <section id="client" class="view">
         <div class="page-heading">
@@ -117,7 +112,7 @@
             >Setor<select id="sector-filter">
               <option value="">Todos os setores</option>
             </select></label
-          ><a class="secondary" href="/comunidade.html?view=map">Ver mapa dos comércios</a>
+          ><a class="secondary" href="./comunidade.html?view=map">Ver mapa dos comércios</a>
         </div>
         <p id="directory-info" class="footnote"></p>
         <details id="complementary-addresses" hidden>
@@ -134,14 +129,12 @@
           <div class="empty-symbol">+</div>
           <h2>O catálogo começa com as empresas.</h2>
           <p>
-            Fotos, produtos, logo e slogan serão adicionados por quem cadastrar cada negócio. Não
-            colocamos conteúdo comercial de exemplo.
+            Cadastre uma empresa fictícia para testar fotos, produtos, logo e slogan.
           </p>
           <button class="primary" data-view="business">Testar o cadastro de empresa</button>
         </div>
         <p class="footnote">
-          As distâncias são aproximadas em linha reta. O catálogo inclui somente empresas que
-          disponibilizaram seus dados nesta demonstração privada.
+          As distâncias são aproximadas em linha reta. Esta versão usa dados fictícios para demonstração.
         </p>
       </section>
       <section id="business" class="view" hidden>
@@ -156,8 +149,8 @@
             Primeiro, faça seu cadastro no sistema. Depois, adicione as informações e as fotos do
             seu negócio.
           </p>
-          <a id="business-entry" class="primary" href="/cadastro.html">Cadastrar minha empresa</a>
-          <p><a href="/entrar.html?next=business">Já tenho conta: entrar</a></p>
+          <a id="business-entry" class="primary" href="./cadastro.html">Cadastrar minha empresa</a>
+          <p><a href="./entrar.html?next=business">Já tenho conta: entrar</a></p>
         </article>
       </section>
       <section id="business-panel" class="view" hidden>
@@ -177,7 +170,7 @@
             </p>
           </aside>
           <form id="company-form" class="panel">
-            <a class="secondary" href="/entrar.html"
+            <a class="secondary" href="./entrar.html"
               ><span aria-hidden="true">←</span> Voltar ao perfil</a
             >
             <h2 id="form-title">Cadastre seu negócio ou serviço</h2>
@@ -388,7 +381,7 @@
           <div data-photo-slot="institution" class="institution-photo">
             <img
               class="fmp-brand"
-              src="/brand/fmp-logo.png"
+              src="./brand/fmp-logo.png"
               alt="FMP — Faculdade Municipal de Palhoça, Educadora Marléia Silveira da Costa"
             />
           </div>
@@ -403,7 +396,7 @@
                 class="portrait-slot"
                 aria-label="Espaço reservado para foto"
               >
-                <img src="/brand/natanael-vieira-sousa.jpeg" alt="Natanael Vieira Sousa" />
+                <img src="./brand/natanael-vieira-sousa.jpeg" alt="Natanael Vieira Sousa" />
               </div>
               <h3>Natanael Vieira Sousa</h3>
               <p>Aluno participante</p>
@@ -414,7 +407,7 @@
                 class="portrait-slot"
                 aria-label="Espaço reservado para foto"
               >
-                <img src="/brand/vitor-hugo-pereira.jpeg" alt="Vitor Hugo Pereira" />
+                <img src="./brand/vitor-hugo-pereira.jpeg" alt="Vitor Hugo Pereira" />
               </div>
               <h3>Vitor Hugo Pereira</h3>
               <p>Aluno participante</p>
@@ -426,7 +419,7 @@
                 aria-label="Espaço reservado para foto"
               >
                 <img
-                  src="/brand/caue-vinicius-teixeira-da-silva.jpeg"
+                  src="./brand/caue-vinicius-teixeira-da-silva.jpeg"
                   alt="Cauê Vinicius Teixeira da Silva"
                 />
               </div>
@@ -444,7 +437,7 @@
                 class="portrait-slot"
                 aria-label="Diego Paulo Garcia"
               >
-                <img src="/brand/diego-paulo-garcia.jpeg" alt="Diego Paulo Garcia" />
+                <img src="./brand/diego-paulo-garcia.jpeg" alt="Diego Paulo Garcia" />
               </div>
               <h3>Diego Paulo Garcia</h3>
               <p>Professor de Matemática</p>
@@ -456,7 +449,7 @@
                 class="portrait-slot"
                 aria-label="Silvania Matos de Lima"
               >
-                <img src="/brand/silvania-matos-de-lima.jpeg" alt="Silvania Matos de Lima" />
+                <img src="./brand/silvania-matos-de-lima.jpeg" alt="Silvania Matos de Lima" />
               </div>
               <h3>Silvania Matos de Lima</h3>
               <p>Professora de Educação Especial</p>
@@ -464,7 +457,7 @@
             </article>
             <article class="team-placeholder">
               <div data-photo-slot="teacher-3" class="portrait-slot" aria-label="Willian de França">
-                <img src="/brand/willian-de-franca.jpeg" alt="Willian de França" />
+                <img src="./brand/willian-de-franca.jpeg" alt="Willian de França" />
               </div>
               <h3>Willian de França</h3>
               <p>Supervisor Escolar</p>
@@ -473,7 +466,7 @@
             </article>
           <article class="team-placeholder">
               <div data-photo-slot="teacher-4" class="portrait-slot" aria-label="Gabriela da Silva Loh">
-                <img src="/brand/gabriela-da-silva-loh.jpeg" alt="Gabriela da Silva Loh">
+                <img src="./brand/gabriela-da-silva-loh.jpeg" alt="Gabriela da Silva Loh">
               </div>
               <h3>Gabriela da Silva Loh</h3>
               <p>Pedagoga · Supervisora Escolar da Rede Municipal de Palhoça</p>
@@ -491,7 +484,7 @@
                 aria-label="Espaço reservado para foto"
               >
                 <img
-                  src="/brand/eugenio-carlos-damasio-frois.png"
+                  src="./brand/eugenio-carlos-damasio-frois.png"
                   alt="Eugênio Carlos Damasio Frois"
                 />
               </div>
@@ -504,7 +497,7 @@
                 class="portrait-slot"
                 aria-label="Espaço reservado para foto"
               >
-                <img src="/brand/joao-paulo-broering.jpeg" alt="João Paulo Broering" />
+                <img src="./brand/joao-paulo-broering.jpeg" alt="João Paulo Broering" />
               </div>
               <h3>João Paulo Broering</h3>
               <p>Desenvolvedor do projeto.</p>
@@ -516,7 +509,7 @@
           <div class="team-grid">
             <article class="team-placeholder">
               <div data-photo-slot="manager" class="portrait-slot" aria-label="Leandro Pickler">
-                <img src="/brand/leandro-pickler.jpeg" alt="Leandro Pickler" />
+                <img src="./brand/leandro-pickler.jpeg" alt="Leandro Pickler" />
               </div>
               <h3>Leandro Pickler</h3>
               <p>Gerente</p>
@@ -527,7 +520,7 @@
                 class="portrait-slot"
                 aria-label="Daniela Amorim"
               >
-                <img src="/brand/daniela-amorim.jpeg" alt="Daniela Amorim">
+                <img src="./brand/daniela-amorim.jpeg" alt="Daniela Amorim">
               </div>
               <h3>Daniela Amorim</h3>
               <p>Coordenação ILAB</p>
@@ -553,17 +546,17 @@
         <strong>Colaborações</strong>
         <div class="partner-logos">
           <img
-            src="/brand/escola-frei-damiao.jpg"
+            src="./brand/escola-frei-damiao.jpg"
             alt="E.B. Frei Damião"
             width="126"
             height="92"
           /><img
-            src="/brand/fmp-logo.png"
+            src="./brand/fmp-logo.png"
             alt="FMP — Faculdade Municipal de Palhoça"
             width="200"
             height="74"
-          /><img src="/brand/ilab-logo.jpg" alt="ILAB" width="130" height="70" /><img
-            src="/brand/prefeitura-palhoca.jpg"
+          /><img src="./brand/ilab-logo.jpg" alt="ILAB" width="130" height="70" /><img
+            src="./brand/prefeitura-palhoca.jpg"
             alt="Prefeitura de Palhoça"
             width="200"
             height="80"
@@ -575,11 +568,11 @@
       <button class="close" aria-label="Fechar detalhes">×</button>
       <div id="details-content"></div>
     </dialog>
-    <script src="/api-response.js"></script>
-    <script src="/route-guide.js"></script>
-    <script src="/about-fotos.js"></script>
-    <script src="/activity-icons.js"></script>
+    <script src="./api-response.js"></script>
+    <script src="./route-guide.js"></script>
+    <script src="./about-fotos.js"></script>
+    <script src="./activity-icons.js"></script>
     <script src="teste.js"></script>
-    <script src="/app-mode.js"></script>
+    <script src="./app-mode.js"></script>
   </body>
 </html>

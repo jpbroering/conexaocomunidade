@@ -2,7 +2,7 @@ import {read,write,list,uuid,Conflict} from '@/lib/json-store';
 import {json} from '@/lib/community';
 import {usernameKey,normalizeUsername} from '@/lib/local-auth';
 import {passwordHash,passwordMatches,validPassword} from '@/lib/passwords';
-import {reservedAdminUsername} from '@/lib/test-admin-bootstrap';
+import {reservedAdminUsername} from '@/lib/reserved-usernames';
 
 export async function releaseSchoolAccount(body:any,actor:string) {
   if(!uuid(body.id))return json({error:'Cadastro inválido.'},400);

@@ -11,7 +11,7 @@
     ["products", "Produtos e serviços", 1500],
   ];
   try {
-    const data = await readApiResponse(await fetch("/api/coordination", { cache: "no-store" }));
+    const data = await readApiResponse(await ccFetch("/api/coordination", { cache: "no-store" }));
     status.textContent = data.name + " · " + data.companies.length + " cadastro(s)";
     document.getElementById("coordination-reports").hidden = false;
     for (const company of data.companies) {
@@ -49,7 +49,7 @@
         button.disabled = true;
         try {
           const updated = Object.fromEntries(new FormData(form));
-          const saved = await readApiResponse(await fetch("/api/coordination", {
+          const saved = await readApiResponse(await ccFetch("/api/coordination", {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id: company.id, revision: company.revision, data: updated }),
@@ -85,8 +85,8 @@
             event.preventDefault();release.disabled=true;
             try {
               const credentials=Object.fromEntries(new FormData(accessForm));
-              await readApiResponse(await fetch('/api/coordination',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'release-account',id:company.id,revision:company.revision,accountRevision:company.account?.revision,...credentials})}));
-              location.href='/coordenacao.html?acesso=1';
+              await readApiResponse(await ccFetch('/api/coordination',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'release-account',id:company.id,revision:company.revision,accountRevision:company.account?.revision,...credentials})}));
+              location.href='./coordenacao.html?acesso=1';
             } catch(error) {notice.textContent=error.message;} finally {release.disabled=false;}
           };
           access.append(accessForm);
@@ -172,12 +172,12 @@
       data.published = form.elements.published.checked;
       data.lat = coordinates?.lat ?? null;
       data.lng = coordinates?.lng ?? null;
-      await readApiResponse(await fetch("/api/coordination", {
+      await readApiResponse(await ccFetch("/api/coordination", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(data),
       }));
-      location.href = "/coordenacao.html?salvo=1";
+      location.href = "./coordenacao.html?salvo=1";
     } catch (error) { status.textContent = error.message; }
     finally { saving = false; button.disabled = false; }
   };

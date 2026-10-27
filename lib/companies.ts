@@ -1,7 +1,7 @@
-import { env } from "cloudflare:workers";
+import { context } from "../pages/context.mjs";
 import { z } from "zod";
 export function masterKey() {
-  const key = (env as unknown as { COMPANY_MASTER_KEY_V1?: string }).COMPANY_MASTER_KEY_V1;
+  const key = context().config.key;
   if (!key) throw Error("Encryption unavailable");
   return key;
 }

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="pt-BR">
   <head>
+    <script src="./prototype.js"></script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Conexão Comunidade • Apresentação para a comunidade</title>
@@ -532,8 +533,8 @@
         object-position: center 18%;
       }
     </style>
-  <link rel="stylesheet" href="/brand-name.css" />
-<script src="/brand-name.js" defer></script>
+  <link rel="stylesheet" href="./brand-name.css" />
+<script src="./brand-name.js" defer></script>
 </head>
   <body>
     <div class="ambient"></div>
@@ -721,10 +722,10 @@
           },
           {
             title: "Como os dados são salvos",
-            sub: "HTML na interface, JSON no servidor.",
+            sub: "Interface no Pages, JSON cifrado no GitHub.",
             items: [
               ["01", "HTML, CSS e JavaScript formam as telas."],
-              ["02", "Um backend controla o acesso e grava os arquivos JSON."],
+              ["02", "O navegador executa as regras do protótipo e grava JSON cifrado pela API do GitHub."],
               ["03", "Dados privados e imagens novas usam armazenamento criptografado."],
               [
                 "04",
@@ -858,7 +859,7 @@
               ["02", "Tem compra ou pagamento? Não nesta etapa."],
               ["03", "A distância é exata? A lista mostra linha reta; o mapa calcula a rota."],
               ["04", "Quem aprova fotos? Um administrador."],
-              ["05", "GitHub sozinho salva contas? GitHub Pages não executa esse backend."],
+              ["05", "O navegador salva os dados cifrados na branch dados-prototipo pela API do GitHub."],
               ["06", "O projeto está finalizado? É um protótipo em testes e pode evoluir."],
             ],
             note: "Outras dúvidas: os relatos não são públicos; não é preciso instalar o app para pesquisar; não prometemos orientação curva a curva própria. Prefira dizer que uma função será avaliada a prometer algo que ainda não foi testado.",

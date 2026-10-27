@@ -29,7 +29,7 @@ const escape = (value) =>
     /[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
   );
-const img = (id) => "/api/company-image?id=" + encodeURIComponent(id);
+const img = (id) => ccImage("/api/company-image?id=" + encodeURIComponent(id));
 const normalize = (s) =>
   String(s || "")
     .normalize("NFD")
@@ -62,13 +62,13 @@ document
   .querySelectorAll("[data-view]")
   .forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
 async function api(path, method = "GET", data) {
-  if (!connected) throw Error("Abra a versão conectada para salvar com proteção no servidor.");
+  if (!connected) throw Error("Abra o protótipo em HTTPS ou na prévia local para salvar.");
   const options = { method, cache: "no-store" };
   if (data !== undefined) {
     options.headers = { "Content-Type": "application/json" };
     options.body = JSON.stringify(data);
   }
-  const r = await fetch(path, options);
+  const r = await ccFetch(path, options);
   return readApiResponse(r).catch((e) => {
     if (e.status === 401) {
       $("connected-profile").hidden = true;
@@ -83,7 +83,7 @@ async function api(path, method = "GET", data) {
       if ($("details").open) $("details").close();
       $("access-notice").hidden = false;
       $("signin").textContent = "Entrar";
-      $("signin").href = "/entrar.html";
+      $("signin").href = "./entrar.html";
       $("signin").onclick = null;
     }
     throw e;
@@ -349,7 +349,7 @@ async function load() {
     $("business-account-nav").textContent = ["owner", "company-admin"].includes(data.user?.role)
       ? "Gerenciar empresas"
       : "Minha empresa";
-    $("business-entry").href = companyAccess ? "/teste.html?area=business" : "/cadastro.html";
+    $("business-entry").href = companyAccess ? "./teste.html?area=business" : "./cadastro.html";
     $("business-entry").textContent = companyAccess
       ? "Acessar minha empresa"
       : "Cadastrar minha empresa";
@@ -363,7 +363,7 @@ async function load() {
       $("connected-profile").hidden = true;
       $("admin-report-notice").hidden = true;
       $("signin").textContent = "Entrar · Empresa";
-      $("signin").href = "/entrar.html?next=business";
+      $("signin").href = "./entrar.html?next=business";
       $("signin").onclick = null;
       if (currentView === "business-panel") switchView("business");
       return true;
@@ -376,7 +376,7 @@ async function load() {
       : data.user.role === "coordination" ? "Coordenação · escola" : "Empresa · conectada";
     $("signin").textContent = "Sair";
     $("signin").href =
-      data.user.auth === "local" ? "/entrar.html" : "/signout-with-chatgpt?return_to=%2Fteste.html";
+      "./entrar.html";
     $("signin").onclick =
       data.user.auth === "local"
         ? async (e) => {
@@ -384,7 +384,7 @@ async function load() {
             if (hasPending() && !confirm("Sair e descartar os campos ainda não salvos?")) return;
             await api("/api/auth", "POST", { action: "logout" });
             dirty = false;
-            location.href = "/entrar.html";
+            location.href = "./entrar.html";
           }
         : null;
     return true;
@@ -501,7 +501,7 @@ async function upload(file, kind, replace = null) {
     fd.append("kind", kind);
     fd.append("revision", companyRevision);
     if (replace) fd.append("replace", replace);
-    const r = await fetch("/api/company-image", { method: "POST", body: fd });
+    const r = await ccFetch("/api/company-image", { method: "POST", body: fd });
     const result = await readApiResponse(r);
     applyImages(result);
     setBusy(true);
@@ -762,11 +762,10 @@ if (connected) {
   setInterval(() => {
     if (document.visibilityState === "visible" && currentView === "client" && !accessRequired)
       load();
-  }, 20000);
+  }, 60000);
 } else renderCatalogue();
 
-let installPrompt = null,
-  waitingWorker = null;
+let installPrompt = null;
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   installPrompt = e;
@@ -775,7 +774,7 @@ $("install-app").onclick = () => {
   const d = document.createElement("dialog");
   d.className = "panel";
   d.innerHTML =
-    '<div class="android-install"><h2>Instalar aplicativo</h2><a href="/downloads/comunidade-conectada-teste.apk">Baixar APK de testes para Android</a><small>Android 6.0 ou superior, com Android System WebView atualizado. O aplicativo usa os mesmos dados do site e precisa de internet. Para instalar o APK de testes, o Android pode solicitar autorização para instalar por este navegador.</small><button class="primary pwa" type="button" hidden>Instalar pelo navegador</button><p>Também é possível instalar pelo menu do navegador. No iPhone, use Safari → Compartilhar → Adicionar à Tela de Início.</p><button type="button" class="secondary close-install">Fechar</button></div>';
+    '<div class="android-install"><h2>Instalar aplicativo</h2><p>Instale a PWA pelo navegador para abrir o protótipo como aplicativo.</p><button class="primary pwa" type="button" hidden>Instalar pelo navegador</button><p>Também é possível instalar pelo menu do navegador. No iPhone, use Safari → Compartilhar → Adicionar à Tela de Início.</p><button type="button" class="secondary close-install">Fechar</button></div>';
   const pwa = d.querySelector(".pwa");
   pwa.hidden = !installPrompt;
   pwa.onclick = async () => {
@@ -790,43 +789,9 @@ $("install-app").onclick = () => {
   document.body.append(d);
   d.showModal();
 };
-function applyVersion() {
-  if (waitingWorker && !hasPending() && !busy) {
-    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload(), {
-      once: true,
-    });
-    waitingWorker.postMessage({ type: "ACTIVATE" });
-    waitingWorker = null;
-  }
-}
-if (connected && "serviceWorker" in navigator)
-  navigator.serviceWorker
-    .register("/sw.js")
-    .then((reg) => {
-      if (reg.waiting) {
-        waitingWorker = reg.waiting;
-        applyVersion();
-      }
-      reg.addEventListener("updatefound", () => {
-        const worker = reg.installing;
-        worker?.addEventListener("statechange", () => {
-          if (worker.state === "installed" && navigator.serviceWorker.controller) {
-            waitingWorker = worker;
-            if (hasPending() || busy)
-              tell(
-                "Nova versão disponível. Seu formulário será preservado; conclua o cadastro para atualizar.",
-              );
-            else applyVersion();
-          }
-        });
-      });
-    })
-    .catch(() => {});
-setInterval(applyVersion, 15000);
-
 async function showAdminNotice() {
   try {
-    const r = await fetch("/api/reports", { cache: "no-store" }),
+    const r = await ccFetch("/api/reports", { cache: "no-store" }),
       data = await readApiResponse(r);
     $("admin-report-notice").hidden = !data.unread;
     $("admin-report-notice").textContent =

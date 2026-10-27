@@ -18,7 +18,7 @@ const status = document.getElementById("status"),
   root = document.getElementById("images");
 async function api(url, method = "GET", body) {
   return readApiResponse(
-    await fetch(url, {
+    await ccFetch(url, {
       method,
       cache: "no-store",
       ...(body instanceof FormData
@@ -75,7 +75,7 @@ async function load() {
       const card = document.createElement("article");
       card.className = "moderation-photo";
       const img = document.createElement("img");
-      img.src = "/api/company-image?id=" + a.id;
+      img.src = ccImage("/api/company-image?id=" + a.id);
       img.alt = "Foto da empresa";
       const p = document.createElement("p");
       p.textContent =
@@ -135,7 +135,7 @@ async function load() {
     card.append(title);
     if (row?.image || row?.defaultSrc) {
       const img = document.createElement("img");
-      img.src = row.defaultSrc || "/api/about-images?id=" + row.image;
+      img.src = row.defaultSrc || ccImage("/api/about-images?id=" + row.image);
       img.alt = slots[slot];
       card.append(img);
     }

@@ -1,126 +1,86 @@
-# vinext-starter
+# Conexão Comunidade · protótipo no GitHub Pages
 
-A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
+Projeto em parceria com a FMP. A interface é publicada como site estático; o navegador lê e grava JSON cifrado pela API do GitHub na branch `dados-prototipo` do mesmo repositório.
 
-## Prerequisites
+Esta versão usa uma base fictícia nova. O acervo anterior permanece cifrado e intacto: [inventário](archive/inventory.json). Sua recuperação exige as chaves originais e, para os arquivos ausentes, uma exportação do servidor anterior.
 
-- Node.js `>=22.13.0`
-- Portable: Windows, macOS, or Linux; no Bash required
-- Managed Linux: managed Linux runtime with Bash, `flock`, `curl`, `sha256sum`, and GNU `timeout`
-- Git is required only for publishing
+## Preparar e executar localmente
 
-## Sites Lifecycle
-
-The Sites initializer copies the shared starter and selects managed-linux only when `SITES_MANAGED_LINUX_CONTAINER=1`; otherwise it selects portable. It saves the selection only in ignored `.sites-runtime/execution-profile.json`. Both profiles copy/configure first, then use the plugin's separate `install-dependencies.mjs` step to measure installation independently. Edit source under `app/` and follow the Sites skill for installation, preview, builds, and publishing.
-
-Run `node <plugin-root>/scripts/configure-execution-profile.mjs` only when the profile is unknown for the current checkout and environment. Profile changes do not alter tracked source or require reinstalling otherwise-valid dependencies; restart an existing preview to use the new selection. Do not commit or upload `.sites-runtime/`.
-
-This starter does not use `wrangler.jsonc`.
-
-`install:ci` runs `npm ci` once against the shared lockfile, disables parent-workspace discovery, and includes required dev/optional dependencies despite production/omit settings. Sharp defaults to prebuilt binaries unless explicitly configured otherwise. Do not overlap installers.
-
-- **Portable:** Preserve host HOME, npm cache, registry, proxy, temporary paths, retry/concurrency settings, and lifecycle-script policy. Use `--prefer-offline --no-audit --no-fund`.
-- **Managed Linux:** Use the existing project-local HOME/cache/tmp setup and Linux install lock, tarball preflight, and timeout. Restore the image-seeded npm cache only when its lockfile hash matches; retain network fallback. Builds keep their existing timeout. These helpers are not invoked by the portable profile.
-
-`scripts/sites-env.mjs` preserves the caller's HOME, npm cache, proxy, XDG, and temporary-directory configuration while defaulting Wrangler and Miniflare state to the checkout. If npm reports an unwritable cache, select a writable path with `npm_config_cache` for that install. The `dev` and `start` scripts also keep Wrangler logs inside the checkout. Generated `.sites-runtime/` and `.wrangler/` directories are disposable and ignored by Git.
-
-On portable, `npm run dev` uses `vinext dev` with HMR, starting at port 5173. Vinext records the running server in ignored `.vinext/` state, rejects an ordinary duplicate launch, and recovers stale state after a stopped process; exactly simultaneous starts can race. Pass `--port <port>` or `--hostname <host>` after `npm run dev --` when needed; keep portable previews on loopback.
-
-For browser QA on managed Linux, use `sites-preview start`. The project's dev script runs Vite and accepts the supervisor's `--host 0.0.0.0 --port 4173 --strictPort` arguments. The internal browser uses `http://terminal.local:4173/`; it is not a user-facing URL. The supervisor owns the preview lifecycle. The ignored local profile survives the supervisor's cleared process environment.
-
-The portable profile simulates ChatGPT sign-in only for loopback development requests. Visit `/signin-with-chatgpt?return_to=/` to sign in as `local_seedy` (`seedy@sites.test`, display name `Seedy`) and `/signout-with-chatgpt?return_to=/` to sign out. The development cookie preserves that identity across server restarts. Mock auth is disabled in the managed-linux profile and is not included in production builds; hosted authentication remains dispatch-owned.
-
-The Worker uses `vinext/server/fetch-handler`, including Vinext's config-aware image handling. After building, `npm start` runs that Worker locally through Wrangler on `127.0.0.1`, sharing `.wrangler/state` with dev preview and local D1 migrations; it does not deploy the site or simulate sign-in. Use the URL printed by the server. Pass `npm start -- --port <port>` to select a different built-preview port.
-
-Local previews use Miniflare's placeholder `Request.cf` metadata without a network lookup. Set `CLOUDFLARE_CF_FETCH_ENABLED=true` to opt into fetching preview metadata; this setting does not change hosted request metadata.
-
-Local tool usage metrics are disabled by default. Set `WRANGLER_SEND_METRICS=true` to opt in.
-
-## Included Shape
-
-- edit site code under `app/`
-- `app/chatgpt-auth.ts` provides optional dispatch-owned ChatGPT sign-in helpers
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
-- `db/schema.ts` starts intentionally empty
-- `@cloudflare/workers-types` provides Worker types; `cloudflare-env.d.ts` declares optional `DB`/`BUCKET` bindings—update these declarations if binding names change
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
-
-The user ID is stable for the same user on the same Site and different across Sites. Use it as the durable user key; use email and name for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive `oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty `name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by `oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
-```
-
-## Optional Dispatch-Owned ChatGPT Sign-In
-
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs optional or required ChatGPT sign-in:
-
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use the returned `userId` as the stable user key for user-owned records; do not use email as a durable identifier.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send anonymous visitors through Sign in with ChatGPT.
-- In a Server Component, start sign-in with `<a href={chatGPTSignInPath(returnTo)} target="_top">`. The auth helper module is server-only; do not import it into a Client Component.
-- Do not use `fetch`, XHR, a client-side router, or a framework link that can prefetch the sign-in route. SIWC must start as a top-level navigation.
-- Never request the AuthAPI authorization endpoint directly. The dispatch-owned `/signin-with-chatgpt` route must start the SIWC flow.
-- Use `chatGPTSignOutPath(returnTo)` for browser sign-out links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the OAuth cookies, and identity header injection. Do not implement app routes for those reserved paths. Routes that do not import and call the helper remain anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the Sites hosting platform's access policy controls for workspace-wide restrictions, or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Local D1 migrations
-
-For a D1-backed local preview, generate SQL with `npm run db:generate`. Build once through the Sites skill's build entrypoint (or `npm run build` for standalone use) to generate `dist/server/wrangler.json`, rebuilding if bindings change. From the project root, apply each pending migration in order:
+Requisito: Node.js 22.13 ou superior. Todas as dependências ativas estão no package.json da raiz.
 
 ```sh
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_example.sql
+npm ci --ignore-scripts --no-audit --no-fund
+node pages/manage.mjs archive
+npm run prototype:prepare
 ```
 
-Replace the filename with the pending migration and `DB` with your D1 binding name if different. Use `.wrangler/state`, not `.wrangler/state/v3`; Wrangler adds the versioned directories. Do not replay migrations already applied locally. This updates only the preview database; publishing applies production migrations separately.
+`prototype:prepare` gera uma chave nova, os arquivos cifrados iniciais e quatro contas de demonstração em `.prototype/`. A configuração fica em `.prototype/runtime-config.json`; as senhas iniciais ficam em `.prototype/credentials.txt`. Ambos são ignorados pelo Git. O comando se recusa a substituir uma preparação existente.
 
-## Diagnostic Commands
+Preencha `token` no arquivo local de configuração usando um fine-grained personal access token limitado a este repositório, com **Contents: read/write**. Em seguida:
 
-- `npm run install:ci`: perform the one locked dependency install
-- `npm run dev`: start the Vite/Vinext development server
-- `npm run build`: build the deployable Sites artifact
-- `npm run start`: preview the built Worker locally with D1/R2 support
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+```sh
+npm run prototype:init
+npm run dev
+```
 
-When using the Sites plugin, follow its skill instructions for installation, builds, and publishing. These npm commands remain available for standalone use.
+A inicialização cria a branch de dados com um commit independente, sem copiar o código ou o acervo antigo. Se a branch já existir, ela é preservada e o comando é interrompido. A prévia abre em `http://127.0.0.1:5173/conexaocomunidade/`. Sem token, a compilação local funciona e a interface informa que falta configuração.
 
-The portable build runs Vinext directly without a host `timeout` command. The managed-linux build uses `scripts/build-verified.sh` and its existing `SITES_BUILD_TIMEOUT` setting.
+## Publicar
 
-## Learn More
+1. Inicialize a branch de dados pelo procedimento acima.
+2. Em **Settings → Secrets and variables → Actions**, cadastre `PROTOTYPE_GITHUB_TOKEN` com o token e `PROTOTYPE_DATA_KEY_V1` com o valor `key` da configuração local. Não gere outra chave depois de inicializar a base.
+3. Em **Settings → Pages**, selecione **GitHub Actions** como origem.
+4. Envie as alterações à branch `main` ou execute manualmente o fluxo **Publicar protótipo no Pages**.
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+O fluxo verifica o acervo, executa os testes, confere a base remota e publica `dist-pages/`. O endereço deste repositório é `https://jpbroering.github.io/conexaocomunidade/`. Gravações na branch de dados ficam disponíveis pela API, sem republicar a interface.
+
+Token e chave entram apenas no artefato publicado, sem valores reais no código-fonte ou nos logs. **Ambos são acessíveis a quem usa o site.** Isso é uma decisão do protótipo com dados fictícios. Login, perfis e limites de tentativas demonstram os fluxos; não constituem uma barreira de segurança contra quem acessa diretamente a API com as credenciais distribuídas. A permissão Contents também alcança outras branches deste repositório.
+
+Para substituir um token expirado, atualize o segredo e a configuração local e execute novamente o fluxo. Não substitua a chave da base por esse motivo. O `runtime-config.json` nunca é guardado pelo service worker, mas a configuração já carregada fica em memória até recarregar a página.
+
+## Dados, cópias e restauração
+
+```sh
+node pages/manage.mjs check
+node pages/manage.mjs backup
+node pages/manage.mjs restore SHA_COMPLETO_DO_COMMIT
+```
+
+As cópias cifradas ficam em `.prototype/backups/<commit>/`. Preserve uma cópia protegida da chave correspondente. Restaurar verifica a integridade e as referências e cria um novo commit, sem forçar a branch ou apagar seu histórico. Sessões recuperadas continuam sujeitas à expiração e à versão de autenticação.
+
+Para importar o acervo, prepare uma pasta com os caminhos originais do armazenamento (`private-json/v1/` e, quando necessário, os binários legados). Forneça `OLD_MASTER_KEY_V1` e `OLD_DIRECTORY_KEY_V1` por ambiente local. A segunda é necessária se houver o pacote `lib/local-directory-seed.json` e nenhum levantamento já exportado como registro ativo.
+
+```sh
+node pages/manage.mjs import CAMINHO_DA_EXPORTACAO
+```
+
+O importador decifra e valida tudo antes da publicação, mantém identificadores, hashes de senha e vínculos, converte imagens antigas em JSON cifrado e usa a chave nova. Colisões de caminho cancelam toda a operação. Sessões, limites de tentativas e tokens de recuperação antigos são descartados. Uma exportação incompleta ou uma chave incorreta interrompe a importação. O material original não é alterado.
+
+## Desenvolvimento e validação
+
+```sh
+npm test
+npm run build
+node pages/manage.mjs archive
+```
+
+Para conferir os fluxos em Chromium com uma API GitHub simulada, execute `npm run test:browser`. A ferramenta usa `/usr/bin/chromium` por padrão; `CHROMIUM_PATH` pode indicar outro executável compatível. O fluxo do Actions também executa essa conferência com o Chrome do runner. O teste verifica o Worker de senhas, duas sessões de navegador, upload, caminhos da subpasta, registro da PWA e página offline; a instalação em um celular precisa de conferência no aparelho.
+
+A estrutura ativa é:
+
+- `public/`: páginas, estilos, imagens e recursos da PWA.
+- `pages/actions/`: regras de contas, empresas, relatos e administração executadas no navegador.
+- `pages/`: cliente GitHub, execução das operações, Worker de senhas, build e ferramentas de dados.
+- `lib/`: validações, autenticação, criptografia e armazenamento compartilhados.
+- `scripts/`: prévia estática local.
+- `documentacao/`: arquitetura, formatos de dados e materiais históricos do projeto.
+- `archive/` e `private-json/`: inventário e acervo cifrado anterior, excluídos da publicação.
+- `android/`: fontes reservadas para uma futura atualização do APK, fora da compilação atual.
+
+O build empacota os módulos do navegador em JavaScript estático. Configurações e dependências de Next, React, Cloudflare e SQL foram retiradas. As fontes anteriores podem ser consultadas no histórico Git, a partir do commit registrado no inventário.
+
+A base usa AES-GCM, HKDF e envelopes compatíveis com os formatos anteriores. Senhas usam scrypt-v1 em um Web Worker. Cada operação é publicada em um único commit e usa revisões para impedir sobrescritas silenciosas. A sessão dura oito horas, ou trinta dias com “manter conectado”; senha alterada ou conta desativada invalida sessões anteriores na próxima operação autenticada.
+
+A instalação como PWA está disponível no navegador. O modo offline apresenta uma orientação e não confirma gravações. Mapas de fundo continuam sendo fornecidos pelo OpenStreetMap; rotas abrem no Google Maps. O APK anterior não é distribuído nesta versão. Recuperação de senha é feita pela administração em **Contas de teste**.
+
+Antes de desligar a hospedagem anterior, confira os fluxos publicados em dois navegadores e no celular, teste a instalação/atualização da PWA e preserve as exportações que ainda serão necessárias. O protótipo pode funcionar sem esse servidor; o GitHub não recupera arquivos que não chegaram ao repositório.

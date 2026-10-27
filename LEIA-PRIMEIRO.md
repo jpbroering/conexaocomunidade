@@ -1,7 +1,7 @@
-# Conexão Comunidade — código do projeto
+# Conexão Comunidade — começar aqui
 
-Este repositório guarda o código-fonte do site e do aplicativo. A interface usa HTML, CSS e JavaScript na pasta `public`; a página principal atual é `public/teste.html`. As APIs em `app/api` e `lib` dependem do servidor.
+A versão atual é um protótipo estático para GitHub Pages. `public/` é a fonte única da interface. As regras do navegador ficam em `pages/actions/` e os módulos compartilhados em `lib/`; a base cifrada fica na branch `dados-prototipo`.
 
-**A migração para GitHub Pages ainda não está concluída.** O Pages não executa o servidor, e os caminhos e a autenticação precisam ser adaptados e testados. O site em funcionamento continua na hospedagem atual. Não insira tokens, chaves de criptografia, senhas ou JSONs em texto puro neste repositório público.
+Siga o [README](README.md) para instalar as dependências, preparar a base fictícia e configurar a publicação. O token precisa ser fornecido e a branch de dados inicializada antes do uso conectado. Token e chave serão distribuídos automaticamente no artefato público, conforme a decisão de escopo do protótipo; mantenha seus valores fora dos fontes e dos logs.
 
-A arquitetura da ponte e a opção de sincronizar JSON cifrado estão em `backend/MIGRACAO-GITHUB.md`. A documentação do projeto está em `documentacao/`.
+O acervo anterior foi conservado intacto e inventariado em `archive/inventory.json`. Ele não é publicado no site e não pode ser recuperado sem as chaves originais. A arquitetura atual e os materiais históricos estão organizados em `documentacao/`; a operação está no README.

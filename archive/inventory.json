@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "originalCommit": "ef3c2443ad2eebdeb74ca29fc1e20c48c0d2a291",
+  "note": "Acervo cifrado anterior, sem as chaves. Não integra a base fictícia nem o pacote do Pages.",
+  "files": [
+    {
+      "path": "lib/local-directory-seed.json",
+      "bytes": 458326,
+      "sha256": "3f1585934be7d818824215ed7cc9c1ced147167a8495f78f033d8dc0ceabdee1"
+    },
+    {
+      "path": "private-json/v1/clients/029e8f16-d85e-4e09-8bba-e3bc49356e1a.json",
+      "bytes": 191,
+      "sha256": "58c0b73af0b1434ce34652813eed499a94828eb700a188865eb98b4a21b03c63"
+    },
+    {
+      "path": "private-json/v1/clients/2f04c636-9e2e-4ff5-a92e-ede6d3982e58.json",
+      "bytes": 191,
+      "sha256": "4eefc653723a8af987febf2d4bc0adfe5145f098f62cf6d198b2ce1246a30eeb"
+    },
+    {
+      "path": "private-json/v1/clients/702d0bfc-a918-4a39-94a2-6fd796bf3dc3.json",
+      "bytes": 191,
+      "sha256": "21ef928aaff37f72fa67b6fe20193dd9989321d4ee4ba23d151c6a1597406563"
+    },
+    {
+      "path": "private-json/v1/companies/37053464-505c-4574-a408-9132b1d2135b.json",
+      "bytes": 827,
+      "sha256": "ba6f332b325393b73019da20b93658feb0f38c19fbd9212192362e0fa6293316"
+    },
+    {
+      "path": "private-json/v1/companies/a1c31e73-c92a-4c5d-8ce4-fec4ec331635.json",
+      "bytes": 927,
+      "sha256": "beb1aa4f8f3b414b7a21d0ca863fe1a688cdcd3c0029f1ff7662819076e49361"
+    },
+    {
+      "path": "private-json/v1/company-images/4f97ffe4-779d-430c-a8e2-da9f4940abfc.json",
+      "bytes": 739,
+      "sha256": "cbf2831632bf48c29fe6ec3be28dd271fd8373705f03ef1f1aefd534124adaf7"
+    },
+    {
+      "path": "private-json/v1/company-images/bf5596c4-8200-4ec2-bbbc-6021a064f444.json",
+      "bytes": 739,
+      "sha256": "6e0182d52ee0ecf84372fd5e06b4fbd2ad7af2c830efa867559bbbb3435ae90b"
+    },
+    {
+      "path": "private-json/v1/company-images/f2d79680-b75f-4a9f-af91-418c9bd5eacd.json",
+      "bytes": 739,
+      "sha256": "35bd7ad5967e2a3b2ba075d3f73803f4c074509dddedace5a3944303e7ef9271"
+    },
+    {
+      "path": "private-json/v1/image-files/company-images/a1c31e73-c92a-4c5d-8ce4-fec4ec331635/4f97ffe4-779d-430c-a8e2-da9f4940abfc.json",
+      "bytes": 226969,
+      "sha256": "c1d22b71c72045860fae4bb354bb271013f06d4ef04631a7492c334fdfb766cf"
+    },
+    {
+      "path": "private-json/v1/image-files/company-images/a1c31e73-c92a-4c5d-8ce4-fec4ec331635/bf5596c4-8200-4ec2-bbbc-6021a064f444.json",
+      "bytes": 37121,
+      "sha256": "e7598f6445e8c8256ed1d688fdd54cb8dc02ecb4e270c2ad844fc9d170ef7418"
+    },
+    {
+      "path": "private-json/v1/image-files/company-images/a1c31e73-c92a-4c5d-8ce4-fec4ec331635/f2d79680-b75f-4a9f-af91-418c9bd5eacd.json",
+      "bytes": 174305,
+      "sha256": "fde926e951ed3cb7506011eeb4ae0ed5cca2d3c3db32702b7352483bdb37f516"
+    },
+    {
+      "path": "private-json/v1/reports/e602f258-1543-4603-a9ab-176245fecbcd.json",
+      "bytes": 4463,
+      "sha256": "e1e9e855452ac13c7687d99d9933db5a20482700007f042f409a769a26325ee9"
+    },
+    {
+      "path": "private-json/v1/users/7a72dfa224a6cb0046823752f77c2f7a7d59375fdf57a263e084f726e0febe4c.json",
+      "bytes": 511,
+      "sha256": "79d48921ca355aee044d92e1810108d6e40579854b6aa307c056f406cc0bc1f4"
+    },
+    {
+      "path": "private-json/v1/users/cef64ceb42a5ba0317231ed9517fdcc2f4a34f62b73fa052f34d9d10a3f0582c.json",
+      "bytes": 515,
+      "sha256": "54f858d50fb255d7e0b9d7a2c8320f7a9f22ac573b185b4ef8990c83e1e98cb9"
+    },
+    {
+      "path": "private-json/v1/users/e92f45e432165c4977c085e36784f5760d84baf3b52becc36f47cd4ddc81ac4f.json",
+      "bytes": 471,
+      "sha256": "1246c8b5abb871e4df4a0f659f3de54d13509ee8b43fa5d6c21ea4cfcec06922"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+name: Publicar protótipo no Pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'pages/**'
+      - 'lib/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'archive/inventory.json'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node pages/manage.mjs archive
+      - run: npm test
+      - run: npm run test:browser
+        env:
+          CHROMIUM_PATH: /usr/bin/google-chrome
+      - run: node pages/manage.mjs check
+        env:
+          PROTOTYPE_GITHUB_TOKEN: ${{ secrets.PROTOTYPE_GITHUB_TOKEN }}
+          PROTOTYPE_DATA_KEY_V1: ${{ secrets.PROTOTYPE_DATA_KEY_V1 }}
+          PROTOTYPE_GITHUB_OWNER: ${{ github.repository_owner }}
+          PROTOTYPE_GITHUB_REPO: ${{ github.event.repository.name }}
+      - run: npm run build
+        env:
+          PROTOTYPE_GITHUB_TOKEN: ${{ secrets.PROTOTYPE_GITHUB_TOKEN }}
+          PROTOTYPE_DATA_KEY_V1: ${{ secrets.PROTOTYPE_DATA_KEY_V1 }}
+          PROTOTYPE_GITHUB_OWNER: ${{ github.repository_owner }}
+          PROTOTYPE_GITHUB_REPO: ${{ github.event.repository.name }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-pages
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4

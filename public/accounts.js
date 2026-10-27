@@ -6,7 +6,7 @@ function status(s) {
   el("status").textContent = s;
 }
 async function call(path, method = "GET", data) {
-  const res = await fetch(path, {
+  const res = await ccFetch(path, {
     method,
     cache: "no-store",
     ...(data
@@ -34,16 +34,16 @@ if (el("login")) {
     e.preventDefault();
     action(e.target, async () => {
       const result = await call("/api/auth", "POST", fields(e.target));
-      if (result.role === "coordination") {location.href = "/coordenacao.html";return;}
+      if (result.role === "coordination") {location.href = "./coordenacao.html";return;}
       e.target.reset();
       location.href =
         new URLSearchParams(location.search).get("next") === "app"
-          ? "/comunidade.html?app=1&view=account"
+          ? "./comunidade.html?app=1&view=account"
           : new URLSearchParams(location.search).get("next") === "reports"
-            ? "/admin-relatos.html"
+            ? "./admin-relatos.html"
             : new URLSearchParams(location.search).get("next") === "business"
-              ? "/teste.html?area=business"
-              : "/teste.html";
+              ? "./teste.html?area=business"
+              : "./teste.html";
     });
   };
   call("/api/auth")
@@ -68,19 +68,19 @@ if (el("login")) {
         el("admin-access-summary").hidden = !admin;
         el("session-continue").href =
           new URLSearchParams(location.search).get("next") === "reports" && admin
-            ? "/admin-relatos.html"
-            : "/teste.html?area=business";
+            ? "./admin-relatos.html"
+            : "./teste.html?area=business";
         el("session-continue").textContent =
           new URLSearchParams(location.search).get("next") === "reports" && admin
             ? "Acessar relatos"
             : admin
               ? "Gerenciar empresas"
               : "Acessar minha empresa";
-        if (coordinator) {el("session-continue").href = "/coordenacao.html";el("session-continue").textContent = "Acompanhar projeto";}
+        if (coordinator) {el("session-continue").href = "./coordenacao.html";el("session-continue").textContent = "Acompanhar projeto";}
         if (d.user.auth === "local") {
           el("change").hidden = false;
           el("password-panel").hidden = false;
-          el("recovery-email-panel").hidden = false;
+          el("recovery-email-panel").hidden = true;
           el("recovery-email").elements.email.value = d.user.email || "";
         }
         el("session-logout").onclick = () =>
@@ -88,7 +88,7 @@ if (el("login")) {
             if (d.user.auth === "local") {
               await call("/api/auth", "POST", { action: "logout" });
               location.reload();
-            } else location.href = "/signout-with-chatgpt?return_to=%2Fentrar.html";
+            } else location.reload();
           });
       }
     })
@@ -198,13 +198,13 @@ if (el("signup-company")) {
         password: data.password,
       });
       form.reset();
-      location.href = "/teste.html?area=business";
+      location.href = "./teste.html?area=business";
     });
   };
   call("/api/auth")
     .then((d) => {
       if (d.user && ["company", "company-admin", "owner"].includes(d.user.role))
-        location.replace("/teste.html?area=business");
+        location.replace("./teste.html?area=business");
       else if (d.user)
         status(
           "Você está em uma conta de cliente. Para cadastrar um negócio, use sua conta de empresa.",
@@ -227,7 +227,7 @@ if (el("recovery-request")) {
     .then((d) => {
       if (!d.available)
         status(
-          "O envio de e-mail ainda não está configurado. A recuperação automática ficará disponível quando o serviço for ativado.",
+          "Solicite à administração do projeto a redefinição da sua senha.",
         );
     })
     .catch((e) => status(e.message));

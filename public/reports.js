@@ -7,7 +7,7 @@ let reportBusy = false,
   gpsAddress = "",
   gpsRequest = 0;
 async function reportCall(method = "GET", body) {
-  const r = await fetch("/api/reports", {
+  const r = await ccFetch("/api/reports", {
     method,
     cache: "no-store",
     ...(body
@@ -160,7 +160,7 @@ async function loadInbox() {
         image.loading = "lazy";
         image.src = row.images?.[i]
           ? "data:" + row.images[i].type + ";base64," + row.images[i].body
-          : "/api/reports?id=" + encodeURIComponent(row.id) + "&photo=" + i;
+          : ccImage("/api/reports?id=" + encodeURIComponent(row.id) + "&photo=" + i);
         photos.append(image);
       }
       card.append(title, status, sender, address, description, photos, actions);
@@ -180,7 +180,7 @@ if (reportEl("inbox-list")) {
   reportEl("inbox-refresh").onclick = () => loadInbox();
   setInterval(() => {
     if (!reportBusy && document.visibilityState === "visible") loadInbox();
-  }, 30000);
+  }, 60000);
   reportEl("inbox-export").onclick = () => {
     const a = document.createElement("a"),
       url = URL.createObjectURL(

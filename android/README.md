@@ -1,3 +1,5 @@
+> Estas fontes foram preservadas para a etapa futura do APK. Elas não participam da compilação ou publicação do Pages. O endereço antigo e a distribuição do aplicativo precisam ser atualizados antes de gerar outra versão. Use a PWA descrita no [README atual](../README.md).
+
 # Conexão Comunidade — Android 0.1 de testes
 
 Aplicativo Android leve, sem bibliotecas nativas por arquitetura. Abre o site HTTPS dentro de uma WebView, com o mesmo servidor e os mesmos dados. Atualizações do site aparecem no aplicativo sem reinstalar o APK. Não contém senhas de contas, tokens administrativos nem chaves do servidor.

@@ -4,7 +4,7 @@ const appMode = document.body.classList.contains("app-shell");
 if (appMode) {
   document.querySelector(".app-home-nav").hidden = false;
   document.title = "Conexão Comunidade · Aplicativo";
-  document.querySelector("header .brand").href = "/comunidade.html?app=1&view=home";
+  document.querySelector("header .brand").href = "./comunidade.html?app=1&view=home";
 }
 let records = [],
   user = null,
@@ -122,8 +122,8 @@ function renderAccount() {
   root.replaceChildren();
   if (!user) {
     text("p", "Pesquise e envie relatos sem criar conta.", root);
-    link(root, "Entrar na conta", "/entrar.html?next=app");
-    link(root, "Cadastrar empresa", "/cadastro.html");
+    link(root, "Entrar na conta", "./entrar.html?next=app");
+    link(root, "Cadastrar empresa", "./cadastro.html");
     return;
   }
   text("h2", user.name, root);
@@ -132,13 +132,13 @@ function renderAccount() {
   const actions = text("div", "", root);
   actions.className = "actions";
   if (admin) {
-    link(actions, "Registros de atividade", "/admin-logs.html");
-    link(actions, "Gerenciar contas", "/contas.html");
-    link(actions, "Aprovar e gerenciar imagens", "/admin-imagens.html");
-    link(actions, "Ler relatos da comunidade", "/admin-relatos.html");
-    link(actions, "Gerenciar empresas", "/teste.html?area=business");
-  } else link(actions, "Minha empresa e fotos", "/teste.html?area=business");
-  link(actions, "Perfil, senha e sair", "/entrar.html");
+    link(actions, "Registros de atividade", "./admin-logs.html");
+    link(actions, "Gerenciar contas", "./contas.html");
+    link(actions, "Aprovar e gerenciar imagens", "./admin-imagens.html");
+    link(actions, "Ler relatos da comunidade", "./admin-relatos.html");
+    link(actions, "Gerenciar empresas", "./teste.html?area=business");
+  } else link(actions, "Minha empresa e fotos", "./teste.html?area=business");
+  link(actions, "Perfil, senha e sair", "./entrar.html");
 }
 function show(r) {
   selected = r;
@@ -149,8 +149,8 @@ function show(r) {
   for (const id of new Set([r.photo, ...(r.gallery || [])].filter(Boolean))) {
     const img = document.createElement("img");
     img.src =
-      (r.sourceType === "company" ? "/api/company-image?id=" : "/api/photo?id=") +
-      encodeURIComponent(id);
+      ccImage((r.sourceType === "company" ? "/api/company-image?id=" : "/api/photo?id=") +
+      encodeURIComponent(id));
     img.alt = "Foto de " + (r.title || r.name);
     img.loading = "lazy";
     root.append(img);
@@ -179,7 +179,7 @@ function show(r) {
     };
   }
   if (r.mine && r.sourceType === "company")
-    link(root, "Gerenciar empresa e fotos", "/teste.html?area=business");
+    link(root, "Gerenciar empresa e fotos", "./teste.html?area=business");
   if (!e("place-details").open) e("place-details").showModal();
 }
 function initMap() {
@@ -379,7 +379,7 @@ async function load() {
     let d;
     try {
       d = await readApiResponse(
-        await fetch("/api/community", { cache: "no-store", signal: controller.signal }),
+        await ccFetch("/api/community", { cache: "no-store", signal: controller.signal }),
       );
     } finally {
       clearTimeout(timeout);
@@ -470,5 +470,4 @@ tab(new URLSearchParams(location.search).get("view") || (appMode ? "home" : "map
 load();
 setInterval(() => {
   if (!document.hidden && !e("place-details").open) load();
-}, 30000);
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+}, 60000);
