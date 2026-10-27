@@ -88,6 +88,9 @@
   }
 
   document.addEventListener("click", event => {
+    if (event.target.closest?.('a[aria-disabled="true"]')) event.preventDefault();
+  }, true);
+  document.addEventListener("click", event => {
     if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     const link = event.target.closest?.("a[href]");
     if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;

@@ -147,14 +147,14 @@
           <h1>Seu negócio na comunidade.</h1>
           <p>Crie sua conta ou entre para cadastrar e gerenciar sua empresa.</p>
         </div>
-        <article class="panel">
-          <h2>Cadastre seu negócio ou serviço</h2>
+        <article id="business-access" class="panel" aria-busy="true">
+          <h2>Verificando sua conta…</h2>
           <p>
-            Primeiro, faça seu cadastro no sistema. Depois, adicione as informações e as fotos do
-            seu negócio.
+            Aguarde enquanto confirmamos se você já está conectado.
           </p>
-          <a id="business-entry" class="primary" href="./cadastro.html">Cadastrar minha empresa</a>
-          <p><a href="./entrar.html?next=business">Já tenho conta: entrar</a></p>
+          <a id="business-entry" class="primary" href="./cadastro.html" aria-disabled="true" tabindex="-1">Cadastrar minha empresa</a>
+          <p><a id="business-login" href="./entrar.html?next=business" aria-disabled="true" tabindex="-1">Já tenho conta: entrar</a></p>
+          <button id="business-retry" class="secondary" type="button" hidden>Verificar conta novamente</button>
         </article>
       </section>
       <section id="business-panel" class="view" hidden>

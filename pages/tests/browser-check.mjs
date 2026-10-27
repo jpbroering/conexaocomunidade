@@ -87,6 +87,8 @@ try {
     await releaseSignup();
     await signup.waitForURL(/teste\.html\?area=business/);
     await signup.locator('.cc-page-loading').filter({ hasText: 'Carregando sua conta' }).waitFor();
+    assert.equal(await signup.locator('#business-entry').isDisabled(), true);
+    assert.equal(await signup.locator('#business-login').isDisabled(), true);
     await mkdir(resolve(directory, '../.prototype'), { recursive: true });
     await signup.screenshot({ path: resolve(directory, '../.prototype/account-loading-check.png'), fullPage: true });
   } finally { await releaseSignup(); await releaseAccount(); }
@@ -99,6 +101,12 @@ try {
   try {
     await first.goto(base);
     await first.locator('#catalogue-status').filter({ hasText: 'Carregando empresas' }).waitFor();
+    await first.getByRole('button', { name: 'Sou empresa', exact: true }).click();
+    await first.locator('.cc-page-loading').filter({ hasText: 'Carregando sua conta' }).waitFor();
+    assert.equal(await first.locator('#business-entry').isDisabled(), true);
+    assert.equal(await first.locator('#business-login').isDisabled(), true);
+    assert.equal(await first.locator('#business-login').evaluate(link => link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))), false, 'disabled account links cannot navigate');
+    await first.getByRole('button', { name: 'Sou cliente', exact: true }).click();
     assert.equal(await first.locator('#empty').isVisible(), false, 'do not show an empty catalogue before it loads');
     assert.equal(await first.locator('#catalogue-status').evaluate(element => getComputedStyle(element, '::before').animationName), 'cc-spin');
     const loadingBox = await first.locator('#catalogue-status').boundingBox();
@@ -112,6 +120,8 @@ try {
   } finally { releaseCatalogue(); }
   await first.locator('#catalogue .company-card').first().waitFor();
   assert.equal(await first.locator('#catalogue-status').isVisible(), false);
+  assert.equal(await first.locator('#business-entry').isEnabled(), true);
+  assert.equal(await first.locator('#business-login').isEnabled(), true);
   await firstContext.unroute(referenceRoute);
   const account = seed.accounts.find(a => a.role === 'company');
   await first.goto(base + 'entrar.html');
@@ -141,6 +151,7 @@ try {
   try {
     await second.getByRole('link', { name: 'Mapa comunitário', exact: true }).click();
     await second.locator('.cc-page-loading').filter({ hasText: 'Carregando o mapa comunitário' }).waitFor();
+    assert.equal(await second.locator('#community-status').isVisible(), false, 'keep only the popup while the map loads');
     await second.screenshot({ path: resolve(directory, '../.prototype/map-loading-check.png'), fullPage: true });
   } finally { await releaseMap(); }
   await second.locator('#community-status').waitFor({ state: 'hidden' });
@@ -155,7 +166,17 @@ try {
   } finally { await releaseBusiness(); }
   await first.locator('#company-form').waitFor();
   await first.locator('.cc-page-loading').waitFor({ state: 'hidden' });
-  await first.goto(base); await first.locator('#catalogue .company-card').first().waitFor();
+  const releaseSession = await holdPageReads(firstContext, 'teste.html');
+  try {
+    await first.goto(base + 'teste.html?area=client');
+    await first.locator('.cc-page-loading').filter({ hasText: 'Carregando sua conta' }).waitFor();
+    assert.equal(await first.locator('#business-entry').isDisabled(), true);
+  } finally { await releaseSession(); }
+  await first.locator('#catalogue .company-card').first().waitFor();
+  await first.locator('.cc-page-loading').waitFor({ state: 'hidden' });
+  assert.equal(await first.locator('#business-login').isVisible(), false);
+  assert.equal(await first.locator('#business-entry').getAttribute('aria-disabled'), 'false');
+  assert.equal(await first.locator('#business-access h2').textContent(), 'Sua conta está conectada.');
   await mkdir(resolve(directory, '../.prototype'), { recursive: true });
   await first.screenshot({ path: resolve(directory, '../.prototype/browser-check.png'), fullPage: true });
   const unavailableContext = await createContext();
@@ -164,6 +185,7 @@ try {
   await unavailable.goto(base);
   await unavailable.locator('#catalogue-status').filter({ hasText: 'Não foi possível carregar' }).waitFor();
   assert.equal(await unavailable.locator('#empty').isVisible(), false, 'a failed load is not an empty catalogue');
+  assert.equal(await unavailable.locator('#business-entry').isDisabled(), true);
   await unavailableContext.unroute(referenceRoute);
   await unavailable.locator('#search').fill('Padaria');
   await unavailable.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
@@ -179,5 +201,7 @@ try {
   await new Promise(resolve => { server.close(resolve); server.closeAllConnections(); });
   await firstContext.setOffline(true); await first.goto(base + 'entrar.html');
   await first.getByRole('heading', { name: /reconectar|conexão|offline|internet/i }).waitFor();
+  assert.equal(await first.evaluate(() => typeof ccUI.setBusy), 'function', 'versioned feedback script is available offline');
+  assert.equal(await first.evaluate(async () => (await fetch(new URL('./assets/css/ui-feedback.css?v=offline-check', location.href))).status), 200, 'the offline cache serves versioned styles');
   console.log('PASS: cadastro pelo formulário, validação de usuário, interface em subpasta, scrypt no Worker, login, gravação entre dois navegadores, imagem decifrada, mapa, recuperação administrativa, escopo PWA e página offline.');
 } catch (error) { console.error(JSON.stringify({ pageErrors: errors, failedAssets: failed, githubCalls: github.calls.slice(-8), messages: await Promise.all(openPages.map(p => p.evaluate(() => document.getElementById("message")?.textContent).catch(() => "closed"))) })); throw error; } finally { await browser?.close(); if (server.listening) await new Promise(resolve => server.close(resolve)); }

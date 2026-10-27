@@ -8,9 +8,10 @@ let suggestionOpen = false;
 let catalogueLimit = 24;
 let catalogueState = "loading";
 let companyAccess = false;
+let accountState = "loading";
 let adminAccess = false;
 let finishAccountLoading = () => {};
-let initialAccountLoading = ccUI.navigationMessage === "Carregando sua conta…";
+let initialAccountLoading = (typeof ccHasSession === "function" && ccHasSession()) || ccUI.navigationMessage === "Carregando sua conta…";
 let companies = [],
   companyId = null,
   companyRevision = null,
@@ -44,6 +45,24 @@ function tell(text, error = false) {
   ccUI.message($("message"), text, error ? "error" : "info");
   $("message").classList.toggle("error", error);
 }
+function setAccountState(state) {
+  accountState = state;
+  const ready = state === "ready";
+  $("business-access").setAttribute("aria-busy", String(state === "loading"));
+  for (const id of ["business-entry", "business-login"]) {
+    const link = $(id);
+    link.setAttribute("aria-disabled", String(!ready));
+    if (ready) link.removeAttribute("tabindex");
+    else link.setAttribute("tabindex", "-1");
+  }
+  $("business-retry").hidden = state !== "error";
+  if (!ready) {
+    $("business-access").querySelector("h2").textContent = state === "loading" ? "Verificando sua conta…" : "Não foi possível verificar sua conta.";
+    $("business-access").querySelector("p").textContent = state === "loading"
+      ? "Aguarde enquanto confirmamos se você já está conectado."
+      : "Confira sua conexão e tente verificar novamente antes de entrar ou cadastrar uma conta.";
+  }
+}
 function switchView(view) {
   if (view === "business-panel" && !companyAccess) {
     view = "business";
@@ -52,7 +71,7 @@ function switchView(view) {
   if (view === "business-panel" && adminAccess && !companyId) form.hidden = true;
   currentView = view;
   finishAccountLoading();
-  if (catalogueState === "loading" && (initialAccountLoading || ["business", "business-panel"].includes(view))) {
+  if (accountState === "loading" && (initialAccountLoading || ["business", "business-panel"].includes(view))) {
     finishAccountLoading = ccUI.showPageLoading("Carregando sua conta…");
   }
   const viewUrl = new URL(location.href);
@@ -344,6 +363,10 @@ function editCompany(c) {
 async function load() {
   if (loading) return false;
   loading = true;
+  if (accountState !== "ready") {
+    setAccountState("loading");
+    initialAccountLoading = initialAccountLoading || (typeof ccHasSession === "function" && ccHasSession());
+  }
   if (catalogueState !== "ready") {
     catalogueState = "loading";
     renderCatalogue();
@@ -384,6 +407,11 @@ async function load() {
     $("business-entry").textContent = companyAccess
       ? "Acessar minha empresa"
       : "Cadastrar minha empresa";
+    $("business-login").hidden = companyAccess;
+    $("business-access").querySelector("h2").textContent = companyAccess ? "Sua conta está conectada." : "Cadastre seu negócio ou serviço";
+    $("business-access").querySelector("p").textContent = companyAccess
+      ? "Acesse sua empresa para concluir o cadastro ou atualizar as informações do seu negócio."
+      : "Primeiro, faça seu cadastro no sistema. Depois, adicione as informações e as fotos do seu negócio.";
     $("access-notice").hidden = true;
     companies = data.companies;
     catalogueState = "ready";
@@ -398,6 +426,7 @@ async function load() {
       $("signin").href = "./entrar.html?next=business";
       $("signin").onclick = null;
       if (currentView === "business-panel") switchView("business");
+      setAccountState("ready");
       return true;
     }
     $("connected-profile").hidden = false;
@@ -419,8 +448,10 @@ async function load() {
             location.href = "./entrar.html";
           }
         : null;
+    setAccountState("ready");
     return true;
   } catch (e) {
+    if (accountState !== "ready") setAccountState("error");
     if (catalogueState !== "ready") {
       catalogueState = "error";
       renderCatalogue();
@@ -434,6 +465,10 @@ async function load() {
   }
 }
 $("retry-catalogue").onclick = () => {
+  tell("");
+  load();
+};
+$("business-retry").onclick = () => {
   tell("");
   load();
 };

@@ -10,6 +10,8 @@ O carregamento consulta a árvore recursiva em uma requisição e volta à leitu
 
 A interface confirma a gravação depois da atualização da referência. Não há fila persistente de gravações offline. Exclusões removem arquivos da versão ativa; o histórico Git conserva os commits anteriores.
 
+Os endereços dos scripts e estilos publicados incluem uma versão calculada pelo conteúdo, para que novas publicações não reutilizem arquivos antigos do navegador. O service worker mantém os recursos offline no cache próprio da compilação e aceita essas URLs versionadas.
+
 Actions Secrets fornece `PROTOTYPE_GITHUB_TOKEN` e `PROTOTYPE_DATA_KEY_V1` ao build. Seus valores não entram nos fontes nem nos logs, mas são publicados em `runtime-config.json` e ficam acessíveis no navegador. O risco foi aceito para o protótipo com dados fictícios. Contents read/write alcança as branches do repositório escolhido, não apenas uma pasta.
 
 A branch principal publica a interface; a de dados é consultada pela API. Senhas usam scrypt no Worker. Sessões ficam em JSON cifrado; tokens de sessão ficam em sessionStorage ou localStorage, sem cookies HttpOnly. Recuperação de senha é administrativa.

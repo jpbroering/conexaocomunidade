@@ -13,6 +13,11 @@
   animation: cc-spin .8s linear infinite;
 }
 button[aria-busy="true"] { cursor: wait; }
+a[aria-disabled="true"] {
+  opacity: .5;
+  cursor: wait;
+  pointer-events: none;
+}
 .cc-page-loading {
   position: fixed;
   inset-block-start: max(20px, env(safe-area-inset-top));

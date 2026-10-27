@@ -19,7 +19,10 @@ test('the Pages artifact contains only the interface, with working relative asse
     const text = await readFile(file, 'utf8');
     assert(!/chatgpt\.site|pages-bridge|\.apk\b|signin-with-chatgpt|signout-with-chatgpt/.test(text), file);
     if (file.endsWith('.html')) {
-      assert(text.includes('src="./assets/js/prototype.js"'), file);
+      assert.match(text, /src="\.\/assets\/js\/prototype\.js\?v=[a-f0-9]{12}"/, file);
+      for (const asset of text.matchAll(/(?:src|href)=["'](\.\/assets\/[^"']+\.(?:js|css)[^"']*)["']/g)) {
+        assert.match(asset[1], /\?v=[a-f0-9]{12}$/, `${file}: unversioned script or style`);
+      }
       for (const match of text.matchAll(/(?:src|href)=["']([^"']+)["']/g)) {
         const raw = match[1];
         if (/^(https?:|data:|blob:|tel:|mailto:|#)/.test(raw) || raw.includes('${')) continue;

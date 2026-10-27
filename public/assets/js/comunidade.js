@@ -374,7 +374,7 @@ async function load() {
   busy = true;
   const loadingMessage = currentTab === "account" ? "Carregando sua conta…" : "Carregando o mapa comunitário…";
   const finishLoading = !loaded ? ccUI.showPageLoading(loadingMessage) : () => {};
-  if (!loaded) status("Carregando locais da comunidade…", "pending");
+  if (!loaded) status("");
   try {
     const controller = new AbortController(),
       timeout = setTimeout(() => controller.abort(), 15000);

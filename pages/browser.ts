@@ -53,7 +53,12 @@ new MutationObserver(records => {
 }).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
 window.addEventListener('pagehide', releaseImages);
 window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
-Object.assign(window, { ccFetch, ccImage, ccPath: (path: string) => new URL(path.replace(/^\//, ''), baseUrl).href });
+Object.assign(window, {
+  ccFetch,
+  ccImage,
+  ccHasSession: () => { try { return !!sessions.get(); } catch { return false; } },
+  ccPath: (path: string) => new URL(path.replace(/^\//, ''), baseUrl).href,
+});
 if ('serviceWorker' in navigator) window.addEventListener('load', () => {
   navigator.serviceWorker.register(new URL('sw.js', baseUrl), { scope: baseUrl.pathname }).then(registration => {
     const offerUpdate = () => {
