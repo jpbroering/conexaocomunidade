@@ -47,8 +47,12 @@ try {
     return context;
   };
   const firstContext = await createContext(), secondContext = await createContext();
+  // Exercise Firefox's missing Request.body with both JSON and image forms.
+  const withoutRequestStream = () => Object.defineProperty(Request.prototype, 'body', { configurable: true, get: () => undefined });
+  await firstContext.addInitScript(withoutRequestStream);
   const first = await firstContext.newPage(), second = await secondContext.newPage();
   const signupContext = await createContext(), signup = await signupContext.newPage();
+  await signupContext.addInitScript(withoutRequestStream);
   await signup.goto(base + 'cadastro.html');
   const signupForm = signup.locator('#signup-company');
   const signupUsername = signupForm.locator('[name=username]');

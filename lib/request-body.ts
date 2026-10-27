@@ -4,7 +4,13 @@ export class RequestError extends Error {
 async function boundedBytes(req:Request,max:number){
   const length=req.headers.get('content-length');
   if(length!==null&&Number(length)>max)throw new RequestError('Conteúdo muito grande.',413);
-  const reader=req.body?.getReader();if(!reader)return new Uint8Array();
+  const reader=req.body?.getReader();
+  // Firefox can read a Request through arrayBuffer() without exposing body.
+  if(!reader){
+    const bytes=new Uint8Array(await req.arrayBuffer());
+    if(bytes.byteLength>max)throw new RequestError('Conteúdo muito grande.',413);
+    return bytes;
+  }
   const chunks:Uint8Array[]=[];let size=0;
   try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>max){await reader.cancel();throw new RequestError('Conteúdo muito grande.',413);}chunks.push(value);}}finally{reader.releaseLock();}
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}return bytes;
