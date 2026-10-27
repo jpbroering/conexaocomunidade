@@ -19,13 +19,14 @@ O destino do link e os identificadores de formulário usados pelo JavaScript for
 | Compilação (`npm run build`) | Passou; pacote do Pages gerado com a configuração local. |
 | Acervo antigo (`npm run prototype:archive`) | 16 arquivos conferidos e intactos conforme os hashes do inventário. |
 | Base remota (`node pages/manage.mjs check`) | Passou; branch acessível, 30 arquivos validados e decifrados com a configuração local. Revisão observada: `6315fcb38af0cba90f894fd248a3d47648566320`. |
+| GitHub Actions | Publicação concluída com sucesso para o commit `52a2161d577a67c2d3889b9053aaa342680ba0dd`. |
+| Site publicado | Páginas do catálogo e do mapa responderam HTTP 200. A edição publicada contém o novo cabeçalho; CSS e JavaScript usam a versão `46aad6d4f3fa`. A configuração aponta para `jpbroering/conexaocomunidade`, branch `dados-prototipo`; os valores secretos não foram exibidos. |
 | Diff (`git diff --check`) | Sem erros de whitespace. |
 | Configuração e credenciais | Permanecem em arquivos locais ignorados pelo Git; não fazem parte do pacote commitado. |
 | Hospedagem antiga | O pacote estático não inclui a ponte antiga nem chamadas a Workers, D1 ou R2. Os dados usam a API do GitHub; o mapa consulta os tiles do OpenStreetMap. |
 
-## Limites e acompanhamento
+## Limites
 
-- A publicação pelo Pages e a versão dos recursos no site devem ser conferidas depois que este commit chegar à `main` e o GitHub Actions concluir a implantação.
 - A checagem da base remota valida a revisão observada naquele momento; não substitui uma restauração periódica de backup.
 - A aplicação continua sendo um protótipo com token e chave disponíveis ao navegador, conforme a arquitetura aceita para os dados fictícios. Esta auditoria não reabre essa decisão nem tenta recuperar o acervo antigo.
 - Os testes cobrem os fluxos descritos acima; não representam uma revisão exaustiva de todas as telas, navegadores, dispositivos ou cenários de segurança.
