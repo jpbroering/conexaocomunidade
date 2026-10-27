@@ -1,0 +1,37 @@
+/* Small, shared feedback states; page layouts stay in their own stylesheets. */
+.cc-loading::before,
+.cc-feedback[data-state="pending"]::before {
+  content: "";
+  display: inline-block;
+  width: .9em;
+  height: .9em;
+  margin-inline-end: .55em;
+  border: 2px solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  vertical-align: -.12em;
+  animation: cc-spin .8s linear infinite;
+}
+button[aria-busy="true"] { cursor: wait; }
+.cc-feedback:not([hidden]):not(:empty) {
+  padding: 10px 12px;
+  border-inline-start: 3px solid #a8c5bb;
+  border-radius: 6px;
+  background: #f0f6f3;
+  color: #24463d;
+  overflow-wrap: anywhere;
+}
+.cc-feedback[data-state="success"] { border-color: #126654; }
+.cc-feedback[data-state="error"] {
+  border-color: #a33030;
+  background: #fff2f0;
+  color: #852626;
+}
+button:focus-visible, a:focus-visible {
+  outline: 3px solid #126654;
+  outline-offset: 3px;
+}
+@keyframes cc-spin { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) {
+  .cc-loading::before, .cc-feedback[data-state="pending"]::before { animation: none; }
+}

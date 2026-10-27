@@ -4,25 +4,25 @@
   --accent-red: #ea4335;
   --accent-yellow: #fbbc05;
   --accent-green: #34a853;
-  --street-photo: url("brand/fundo-cliente-v2.webp");
+  --street-photo: url("../images/brand/fundo-cliente-v2.webp");
 }
-body[data-background-view="painel"] { --street-photo: url("brand/fundo-painel-v2.webp"); }
-body[data-background-view="sobre"] { --street-photo: url("brand/fundo-sobre-v2.webp"); }
-body[data-background-view="empresa"] { --street-photo: url("brand/fundo-empresa-v2.webp"); }
-body[data-background-view="mapa"] { --street-photo: url("brand/fundo-mapa-v2.webp"); }
-body[data-background-view="comunidade"] { --street-photo: url("brand/fundo-comunidade-v2.webp"); }
-body[data-background-view="conta"] { --street-photo: url("brand/fundo-conta-v2.webp"); }
-body[data-background-view="acesso"] { --street-photo: url("brand/fundo-acesso-v2.webp"); }
-body[data-background-view="cadastro"] { --street-photo: url("brand/fundo-cadastro-v2.webp"); }
-body[data-background-view="recuperar"] { --street-photo: url("brand/fundo-recuperar-v2.webp"); }
-body[data-background-view="redefinir"] { --street-photo: url("brand/fundo-redefinir-v2.webp"); }
-body[data-background-view="relatar"] { --street-photo: url("brand/fundo-relatar-v2.webp"); }
-body[data-background-view="coordenacao"] { --street-photo: url("brand/fundo-coordenacao-v2.webp"); }
-body[data-background-view="contas"] { --street-photo: url("brand/fundo-contas-v2.webp"); }
-body[data-background-view="imagens"] { --street-photo: url("brand/fundo-imagens-v2.webp"); }
-body[data-background-view="logs"] { --street-photo: url("brand/fundo-logs-v2.webp"); }
-body[data-background-view="relatos"] { --street-photo: url("brand/fundo-relatos-v2.webp"); }
-body[data-background-view="offline"] { --street-photo: url("brand/fundo-offline-v2.webp"); }
+body[data-background-view="painel"] { --street-photo: url("../images/brand/fundo-painel-v2.webp"); }
+body[data-background-view="sobre"] { --street-photo: url("../images/brand/fundo-sobre-v2.webp"); }
+body[data-background-view="empresa"] { --street-photo: url("../images/brand/fundo-empresa-v2.webp"); }
+body[data-background-view="mapa"] { --street-photo: url("../images/brand/fundo-mapa-v2.webp"); }
+body[data-background-view="comunidade"] { --street-photo: url("../images/brand/fundo-comunidade-v2.webp"); }
+body[data-background-view="conta"] { --street-photo: url("../images/brand/fundo-conta-v2.webp"); }
+body[data-background-view="acesso"] { --street-photo: url("../images/brand/fundo-acesso-v2.webp"); }
+body[data-background-view="cadastro"] { --street-photo: url("../images/brand/fundo-cadastro-v2.webp"); }
+body[data-background-view="recuperar"] { --street-photo: url("../images/brand/fundo-recuperar-v2.webp"); }
+body[data-background-view="redefinir"] { --street-photo: url("../images/brand/fundo-redefinir-v2.webp"); }
+body[data-background-view="relatar"] { --street-photo: url("../images/brand/fundo-relatar-v2.webp"); }
+body[data-background-view="coordenacao"] { --street-photo: url("../images/brand/fundo-coordenacao-v2.webp"); }
+body[data-background-view="contas"] { --street-photo: url("../images/brand/fundo-contas-v2.webp"); }
+body[data-background-view="imagens"] { --street-photo: url("../images/brand/fundo-imagens-v2.webp"); }
+body[data-background-view="logs"] { --street-photo: url("../images/brand/fundo-logs-v2.webp"); }
+body[data-background-view="relatos"] { --street-photo: url("../images/brand/fundo-relatos-v2.webp"); }
+body[data-background-view="offline"] { --street-photo: url("../images/brand/fundo-offline-v2.webp"); }
 body {
   background-color: #edf3f8;
   background-image: linear-gradient(#f3f6fa38, #f3f6fa38), var(--street-photo);

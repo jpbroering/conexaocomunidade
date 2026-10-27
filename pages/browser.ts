@@ -1,6 +1,6 @@
 import { createClient } from './api';
 import { StoreError, validateConfig } from './github-store.mjs';
-const baseUrl = new URL('./', (document.currentScript as HTMLScriptElement).src);
+const baseUrl = new URL('../../', (document.currentScript as HTMLScriptElement).src);
 const sessionKey = 'conexao-prototype-session-v1';
 const sessions = {
   get: () => sessionStorage.getItem(sessionKey) || localStorage.getItem(sessionKey),

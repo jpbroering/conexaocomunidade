@@ -61,6 +61,12 @@ try {
   for (const [name, value] of Object.entries({ name: 'Empresa criada pelo formulário', email: 'teste@example.com', username: 'cadastro.navegador-teste', password: 'Senha longa do cadastro fictício!', confirmPassword: 'Senha longa do cadastro fictício!' })) {
     await signupForm.locator(`[name=${name}]`).fill(value);
   }
+  await signupForm.locator('[name=confirmPassword]').fill('Confirmação diferente e longa!');
+  await signupForm.locator('button').click();
+  await signup.getByRole('alert').filter({ hasText: 'As senhas precisam ser iguais' }).waitFor();
+  assert.equal(await signupUsername.inputValue(), 'cadastro.navegador-teste');
+  assert.equal(await signupForm.locator('button').isEnabled(), true);
+  await signupForm.locator('[name=confirmPassword]').fill('Senha longa do cadastro fictício!');
   await signupForm.locator('button').click();
   await signup.waitForURL(/teste\.html\?area=business/);
   await signup.locator('#company-form').waitFor();
@@ -73,6 +79,12 @@ try {
     await first.goto(base);
     await first.locator('#catalogue-status').filter({ hasText: 'Carregando empresas' }).waitFor();
     assert.equal(await first.locator('#empty').isVisible(), false, 'do not show an empty catalogue before it loads');
+    assert.equal(await first.locator('#catalogue-status').evaluate(element => getComputedStyle(element, '::before').animationName), 'cc-spin');
+    await first.emulateMedia({ reducedMotion: 'reduce' });
+    assert.equal(await first.locator('#catalogue-status').evaluate(element => getComputedStyle(element, '::before').animationName), 'none');
+    await first.emulateMedia({ reducedMotion: 'no-preference' });
+    await mkdir(resolve(directory, '../.prototype'), { recursive: true });
+    await first.screenshot({ path: resolve(directory, '../.prototype/loading-check.png'), fullPage: true });
   } finally { releaseCatalogue(); }
   await first.locator('#catalogue .company-card').first().waitFor();
   assert.equal(await first.locator('#catalogue-status').isVisible(), false);
@@ -108,6 +120,12 @@ try {
   await unavailable.goto(base);
   await unavailable.locator('#catalogue-status').filter({ hasText: 'Não foi possível carregar' }).waitFor();
   assert.equal(await unavailable.locator('#empty').isVisible(), false, 'a failed load is not an empty catalogue');
+  await unavailableContext.unroute(referenceRoute);
+  await unavailable.locator('#search').fill('Padaria');
+  await unavailable.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
+  await unavailable.locator('#catalogue .company-card').first().waitFor();
+  assert.equal(await unavailable.locator('#search').inputValue(), 'Padaria');
+  assert.equal(await unavailable.locator('#retry-catalogue').isVisible(), false);
   await unavailableContext.close();
   assert.deepEqual(errors, [], 'Browser errors'); assert.deepEqual(failed, [], 'Missing local assets');
   assert(!external.some(url => /chatgpt\.site|pages-bridge/.test(url)));

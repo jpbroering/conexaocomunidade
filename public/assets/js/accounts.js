@@ -2,8 +2,8 @@
 const el = (id) => document.getElementById(id);
 let pending = false,
   resetUser = null;
-function status(s) {
-  el("status").textContent = s;
+function status(s, state = "info") {
+  ccUI.message(el("status"), s, state);
 }
 async function call(path, method = "GET", data) {
   const res = await ccFetch(path, {
@@ -18,14 +18,23 @@ async function call(path, method = "GET", data) {
 async function action(form, work) {
   if (pending) return;
   pending = true;
-  form.querySelectorAll("button").forEach((b) => (b.disabled = true));
+  const buttons = [...form.querySelectorAll("button")].map(button => ({ button, disabled: button.disabled }));
+  const submit = form.querySelector('button[type="submit"], button:not([type]), button.primary') || buttons[0]?.button;
+  const label = form.id === "login" ? "Entrando…" : form.id === "signup-company" ? "Criando conta…" : "Salvando…";
+  ccUI.setBusy(submit, true, label);
+  buttons.forEach(({ button }) => { button.disabled = true; });
+  form.setAttribute("aria-busy", "true");
+  status(label, "pending");
   try {
     await work();
   } catch (e) {
-    status(e.message);
+    status(e.message, "error");
   } finally {
     pending = false;
-    form.querySelectorAll("button").forEach((b) => (b.disabled = false));
+    ccUI.setBusy(submit, false);
+    buttons.forEach(({ button, disabled }) => { button.disabled = disabled; });
+    form.removeAttribute("aria-busy");
+    if (el("status")?.dataset.state === "pending") status("");
   }
 }
 const fields = (form) => Object.fromEntries(new FormData(form));

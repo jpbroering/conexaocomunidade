@@ -9,21 +9,19 @@ import { validateConfig } from './github-store.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const output = resolve(root, 'dist-pages');
 const publicDirectory = resolve(root, 'public');
-const publicAssetDirectories = new Set(['brand', 'vendor']);
-const publicFileExtension = /\.(html|css|js|svg|png|webmanifest)$/;
 
 async function copyInterface() {
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
 
   // Publish only the interface, never credentials, source modules or archives.
-  for (const entry of await readdir(publicDirectory, { withFileTypes: true })) {
-    if (entry.isDirectory() && publicAssetDirectories.has(entry.name)) {
-      await cp(resolve(publicDirectory, entry.name), resolve(output, entry.name), { recursive: true });
-    } else if (entry.isFile() && publicFileExtension.test(entry.name)) {
-      await cp(resolve(publicDirectory, entry.name), resolve(output, entry.name));
+  await cp(resolve(publicDirectory, 'assets'), resolve(output, 'assets'), { recursive: true });
+  for (const entry of await readdir(resolve(publicDirectory, 'pages'), { withFileTypes: true })) {
+    if (entry.isFile() && entry.name.endsWith('.html')) {
+      await cp(resolve(publicDirectory, 'pages', entry.name), resolve(output, entry.name));
     }
   }
+  for (const name of ['sw.js', 'manifest.webmanifest']) await cp(resolve(publicDirectory, name), resolve(output, name));
   await cp(resolve(output, 'teste.html'), resolve(output, 'index.html'));
   await writeFile(resolve(output, '.nojekyll'), '');
 }
@@ -41,12 +39,12 @@ async function compileBrowserScripts() {
     ...options,
     ...browserBuildOptions,
     entryPoints: [resolve(root, 'pages/browser.ts')],
-    outfile: resolve(output, 'prototype.js'),
+    outfile: resolve(output, 'assets/js/prototype.js'),
   });
   await build({
     ...options,
     entryPoints: [resolve(root, 'pages/password-worker.mjs')],
-    outfile: resolve(output, 'password-worker.js'),
+    outfile: resolve(output, 'assets/js/password-worker.js'),
   });
 }
 

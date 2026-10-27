@@ -89,9 +89,8 @@ function link(parent, label, href) {
   a.className = "secondary";
   return a;
 }
-function status(s) {
-  e("community-status").hidden = !s;
-  e("community-status").textContent = s;
+function status(s, state = "info") {
+  ccUI.message(e("community-status"), s, state);
 }
 function tab(name) {
   if (!["map", "community", "account", ...(appMode ? ["home"] : [])].includes(name)) name = appMode ? "home" : "map";
@@ -373,6 +372,7 @@ function renderSuggestions(open = true) {
 async function load() {
   if (busy) return;
   busy = true;
+  if (!loaded) status("Carregando locais da comunidade…", "pending");
   try {
     const controller = new AbortController(),
       timeout = setTimeout(() => controller.abort(), 15000);
@@ -394,6 +394,7 @@ async function load() {
     status(
       "Não foi possível atualizar. " +
         (err.name === "AbortError" ? "Confira a conexão e tente novamente." : err.message),
+      "error",
     );
   } finally {
     busy = false;

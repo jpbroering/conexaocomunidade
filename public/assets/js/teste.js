@@ -39,7 +39,7 @@ const normalize = (s) =>
     .replace(/\bpaes\b/g, "pao")
     .replace(/\bcostureir[ao]s?\b/g, "costura");
 function tell(text, error = false) {
-  $("message").textContent = text;
+  ccUI.message($("message"), text, error ? "error" : "info");
   $("message").classList.toggle("error", error);
 }
 function switchView(view) {
@@ -161,7 +161,11 @@ function filtered() {
 }
 function renderCatalogue() {
   const ready = catalogueState === "ready";
+  const waiting = catalogueState === "loading";
   $("catalogue-status").hidden = ready;
+  $("catalogue-status").classList.toggle("cc-loading", waiting);
+  $("catalogue").setAttribute("aria-busy", String(waiting));
+  $("retry-catalogue").hidden = catalogueState !== "error";
   if (!ready) {
     const message = catalogueState === "error"
       ? "Não foi possível carregar as empresas. Confira a conexão e recarregue a página."
@@ -417,6 +421,10 @@ async function load() {
     loading = false;
   }
 }
+$("retry-catalogue").onclick = () => {
+  tell("");
+  load();
+};
 async function ensureCompany() {
   if (companyId) return companyId;
   if (adminAccess) throw Error("Selecione uma empresa registrada para gerenciar.");
@@ -457,8 +465,9 @@ function dataFromForm() {
 }
 function setBusy(value) {
   busy = value;
+  ccUI.setBusy($("save-company"), value, "Salvando…");
   form.querySelectorAll("button,input,textarea,select").forEach((b) => (b.disabled = value));
-  $("save-company").textContent = value ? "Salvando…" : "Salvar empresa";
+  form.setAttribute("aria-busy", String(value));
 }
 form.addEventListener("input", () => (dirty = true));
 form.addEventListener("submit", async (e) => {

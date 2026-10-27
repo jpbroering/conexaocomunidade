@@ -68,7 +68,9 @@ Para conferir os fluxos em Chromium com uma API GitHub simulada, execute `npm ru
 
 A estrutura ativa é:
 
-- `public/`: páginas, estilos, imagens e recursos da PWA.
+- `public/pages/`: fontes HTML; o build mantém os endereços publicados na raiz do site.
+- `public/assets/`: estilos em `css/`, scripts em `js/`, imagens em `images/`, ícones em `icons/` e bibliotecas em `vendor/`.
+- `public/sw.js` e `public/manifest.webmanifest`: configuração da PWA no escopo do site.
 - `pages/actions/`: regras de contas, empresas, relatos e administração executadas no navegador.
 - `pages/`: cliente GitHub, execução das operações, Worker de senhas, build e ferramentas de dados.
 - `lib/`: validações, autenticação, criptografia e armazenamento compartilhados.

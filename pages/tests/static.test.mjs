@@ -19,7 +19,7 @@ test('the Pages artifact contains only the interface, with working relative asse
     const text = await readFile(file, 'utf8');
     assert(!/chatgpt\.site|pages-bridge|\.apk\b|signin-with-chatgpt|signout-with-chatgpt/.test(text), file);
     if (file.endsWith('.html')) {
-      assert(text.includes('src="./prototype.js"'), file);
+      assert(text.includes('src="./assets/js/prototype.js"'), file);
       for (const match of text.matchAll(/(?:src|href)=["']([^"']+)["']/g)) {
         const raw = match[1];
         if (/^(https?:|data:|blob:|tel:|mailto:|#)/.test(raw) || raw.includes('${')) continue;
@@ -30,9 +30,17 @@ test('the Pages artifact contains only the interface, with working relative asse
         assert((await stat(local)).isFile(), local);
       }
     }
+    if (file.endsWith('.css') && !file.includes('/vendor/')) {
+      for (const match of text.matchAll(/url\(\s*(["']?)([^)"']+)\1\s*\)/g)) {
+        if (/^(data:|https?:|#)/.test(match[2])) continue;
+        const url = new URL(match[2].trim(), new URL(file.slice(directory.length + 1), site));
+        const local = resolve(directory, decodeURIComponent(url.pathname.slice('/conexaocomunidade/'.length)));
+        assert((await stat(local)).isFile(), `${file}: missing CSS asset ${match[2]}`);
+      }
+    }
   }
   assert.equal(await readFile(resolve(directory, 'index.html'), 'utf8'), await readFile(resolve(directory, 'teste.html'), 'utf8'));
-  const browser = await readFile(resolve(directory, 'prototype.js'), 'utf8');
+  const browser = await readFile(resolve(directory, 'assets/js/prototype.js'), 'utf8');
   assert(!/cloudflare:workers|next\/headers|node:crypto/.test(browser));
   const archivedSeed = JSON.parse(await readFile(resolve(root, 'lib/local-directory-seed.json'), 'utf8'));
   assert(!browser.includes(archivedSeed.body));
@@ -43,4 +51,14 @@ test('PWA scope and start URL remain inside the project; config is not precached
   const worker = await readFile(resolve(directory, 'sw.js'), 'utf8');
   assert(!worker.includes('__BUILD_ID__')); assert(!worker.includes('runtime-config.json'));
   assert.equal(JSON.parse(await readFile(resolve(directory, 'runtime-config.json'), 'utf8')).configured, false);
+  for (const icon of manifest.icons) assert((await stat(resolve(directory, icon.src))).isFile());
+  const cached = worker.match(/const PATHS = \[([\s\S]*?)\]\.map/)[1];
+  for (const path of cached.matchAll(/'([^']+)'/g)) assert((await stat(resolve(directory, path[1]))).isFile());
+});
+
+test('public keeps pages and assets in dedicated folders', async () => {
+  const source = resolve(root, 'public');
+  assert.deepEqual((await readdir(source)).sort(), ['README.md', 'assets', 'manifest.webmanifest', 'pages', 'sw.js']);
+  assert.deepEqual((await readdir(resolve(source, 'assets'))).sort(), ['css', 'icons', 'images', 'js', 'vendor']);
+  assert((await readdir(resolve(source, 'pages'))).every(name => name.endsWith('.html')));
 });

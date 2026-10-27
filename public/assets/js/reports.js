@@ -31,9 +31,9 @@ if (reportForm) {
     reportBusy = true;
     const button = reportForm.querySelector("button[type=submit]"),
       status = reportEl("report-status");
-    button.disabled = true;
+    ccUI.setBusy(button, true, "Enviando…");
     status.hidden = false;
-    status.textContent = "Enviando relato…";
+    ccUI.message(status, "Enviando relato…", "pending");
     const f = new FormData(reportForm),
       anonymous = f.get("identity") === "anonymous";
     try {
@@ -51,12 +51,12 @@ if (reportForm) {
       reportEl("report-photo-count").textContent = "Nenhuma foto selecionada.";
       clearReportLocation();
       identity();
-      status.textContent = "Relato enviado à administração. Referência: " + data.id + ".";
+      ccUI.message(status, "Relato enviado à administração. Referência: " + data.id + ".", "success");
     } catch (e) {
-      status.textContent = e.message;
+      ccUI.message(status, e.message, "error");
     } finally {
       reportBusy = false;
-      button.disabled = false;
+      ccUI.setBusy(button, false);
     }
   };
 }
