@@ -94,6 +94,27 @@ try {
   } finally { await releaseSignup(); await releaseAccount(); }
   await signup.locator('#company-form').waitFor();
   await signup.locator('.cc-page-loading').waitFor({ state: 'hidden' });
+  const heading = signup.locator('.company-form-heading');
+  await heading.waitFor();
+  const desktopHeading = await heading.evaluate(element => {
+    const title = element.querySelector('#form-title').getBoundingClientRect();
+    const back = element.querySelector('a').getBoundingClientRect();
+    return { title, back };
+  });
+  assert(desktopHeading.title.right < desktopHeading.back.left, 'company title remains left of the back button');
+  assert(Math.abs((desktopHeading.title.top + desktopHeading.title.bottom) / 2 - (desktopHeading.back.top + desktopHeading.back.bottom) / 2) < 2, 'company title and back button share a desktop row');
+  await signup.setViewportSize({ width: 390, height: 844 });
+  const mobileHeading = await heading.evaluate(element => {
+    const title = element.querySelector('#form-title').getBoundingClientRect();
+    const back = element.querySelector('a').getBoundingClientRect();
+    return { title, back, titleText: element.querySelector('#form-title').textContent };
+  });
+  assert(mobileHeading.title.bottom + 11 <= mobileHeading.back.top, 'mobile back button follows the title with 12px spacing');
+  assert(Math.abs(mobileHeading.title.left - mobileHeading.back.left) < 1, 'mobile title and back button are left aligned');
+  assert.match(mobileHeading.titleText, /Cadastre seu negócio/);
+  await signup.locator('.company-form-heading a').focus();
+  assert.equal(await signup.evaluate(() => document.activeElement?.textContent.trim()), '← Voltar ao perfil', 'back button remains keyboard focusable');
+  await signup.setViewportSize({ width: 1280, height: 720 });
   await signupContext.close();
   let releaseCatalogue;
   const catalogueGate = new Promise(resolve => { releaseCatalogue = resolve; });

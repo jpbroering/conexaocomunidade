@@ -325,6 +325,24 @@ p {
 .panel h2 {
   margin-top: 0;
 }
+.company-form-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.company-form-heading h2 {
+  margin: 0;
+}
+.company-form-heading .secondary {
+  flex-shrink: 0;
+}
+#company-token {
+  overflow-wrap: anywhere;
+  margin-top: 0;
+  margin-bottom: 20px;
+}
 .panel label {
   display: flex;
   flex-direction: column;
@@ -601,6 +619,11 @@ dialog::backdrop {
   }
   .business-layout {
     grid-template-columns: 1fr;
+  }
+  .company-form-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
   }
   .two-columns {
     grid-template-columns: 1fr;
