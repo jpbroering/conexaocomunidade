@@ -223,6 +223,6 @@ try {
   await firstContext.setOffline(true); await first.goto(base + 'entrar.html');
   await first.getByRole('heading', { name: /reconectar|conexão|offline|internet/i }).waitFor();
   assert.equal(await first.evaluate(() => typeof ccUI.setBusy), 'function', 'versioned feedback script is available offline');
-  assert.equal(await first.evaluate(async () => (await fetch(new URL('./assets/css/ui-feedback.css?v=offline-check', location.href))).status), 200, 'the offline cache serves versioned styles');
+  assert.equal(await first.evaluate(async () => { const url = document.querySelector('link[href*="ui-feedback"]').href; return (await fetch(url)).status; }), 200, 'the offline cache serves the exact fingerprinted style used by the document');
   console.log('PASS: cadastro pelo formulário, validação de usuário, interface em subpasta, scrypt no Worker, login, gravação entre dois navegadores, imagem decifrada, mapa, recuperação administrativa, escopo PWA e página offline.');
 } catch (error) { console.error(JSON.stringify({ pageErrors: errors, failedAssets: failed, githubCalls: github.calls.slice(-8), messages: await Promise.all(openPages.map(p => p.evaluate(() => document.getElementById("message")?.textContent).catch(() => "closed"))) })); throw error; } finally { await browser?.close(); if (server.listening) await new Promise(resolve => server.close(resolve)); }

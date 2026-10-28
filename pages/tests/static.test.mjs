@@ -19,7 +19,7 @@ test('the Pages artifact contains only the interface, with working relative asse
     const text = await readFile(file, 'utf8');
     assert(!/chatgpt\.site|pages-bridge|\.apk\b|signin-with-chatgpt|signout-with-chatgpt/.test(text), file);
     if (file.endsWith('.html')) {
-      assert.match(text, /src="\.\/assets\/js\/prototype\.js\?v=[a-f0-9]{12}"/, file);
+      assert.match(text, /src="\.\/assets\/js\/prototype\.[a-f0-9]{12}\.js\?v=[a-f0-9]{12}"/, file);
       for (const asset of text.matchAll(/(?:src|href)=["'](\.\/assets\/[^"']+\.(?:js|css)[^"']*)["']/g)) {
         assert.match(asset[1], /\?v=[a-f0-9]{12}$/, `${file}: unversioned script or style`);
       }
@@ -56,7 +56,10 @@ test('PWA scope and start URL remain inside the project; config is not precached
   assert.equal(JSON.parse(await readFile(resolve(directory, 'runtime-config.json'), 'utf8')).configured, false);
   for (const icon of manifest.icons) assert((await stat(resolve(directory, icon.src))).isFile());
   const cached = worker.match(/const PATHS = \[([\s\S]*?)\]\.map/)[1];
-  for (const path of cached.matchAll(/'([^']+)'/g)) assert((await stat(resolve(directory, path[1]))).isFile());
+  for (const path of cached.matchAll(/'([^']+)'/g)) {
+    assert((await stat(resolve(directory, path[1]))).isFile());
+    if (/\.(js|css)$/.test(path[1])) assert.match(path[1], /\.[a-f0-9]{12}\.(js|css)$/, 'precache uses immutable asset filenames');
+  }
 });
 
 test('public keeps pages and assets in dedicated folders', async () => {

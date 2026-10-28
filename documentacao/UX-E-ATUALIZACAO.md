@@ -14,6 +14,14 @@ Implementado e verificado em 28/10/2026, com base fictícia independente.
 - A conferência visual no Pages identificou que uma regra compartilhada ampliava o diálogo de detalhes em desktop. A regra foi removida, preservando os limites definidos por cada página, e o teste passou a exigir largura de até 600 px no catálogo.
 - A seleção de arquivo deixou de marcar, por si só, os campos da empresa como não salvos: o upload tem sua própria confirmação remota.
 
+## Atualização de instalações existentes da PWA
+
+O aviso `ccUI.preserveView is not a function` foi reproduzido com a política do worker anterior: ele retirava `?v=` ao procurar o script no cache, mas buscava a página HTML nova na rede. Assim, um documento novo recebia o helper antigo. Testes em contextos limpos não reproduziam essa combinação.
+
+A compilação agora incorpora a versão no **nome** dos scripts e estilos referenciados pelo HTML e pelo precache, por exemplo `ui-feedback.<versão>.js`. O worker já instalado não intercepta esse caminho novo. Os nomes originais continuam no artefato para referências internas e compatibilidade; o código-fonte em `public/` mantém os nomes habituais. Nenhuma credencial é incorporada a esses scripts pelo processo de versionamento.
+
+O teste `pwa-upgrade-check.mjs` instala primeiro um worker com a política antiga e um helper sem os métodos novos. Ele demonstra que alterar somente a query ainda devolve o helper antigo; em seguida verifica catálogo e mapa com os nomes novos, mantendo aquele worker ativo. Depois aceita a atualização da PWA, confere a remoção do cache anterior e abre a página offline com seus próprios recursos. O cenário é executado em Chromium e Firefox real. Não exige limpeza manual do armazenamento nem descarta formulários para forçar ativação.
+
 ## Padrões para manutenção
 
 Os utilitários compartilhados ficam em `public/assets/js/ui-feedback.js`, com estilos em `public/assets/css/ui-feedback.css`.
@@ -33,8 +41,8 @@ A revisão preservou os endpoints, os envelopes cifrados, os perfis e os endere�
 | Verificação | Resultado |
 | --- | --- |
 | `npm test` | 25 testes passaram: leitura de requisições, fluxos e persistência, concorrência, falhas, espera após limite da API, agendamento da atualização e verificações estáticas. |
-| `npm run test:browser` | Passou: bateria existente e regressões administrativas em Chromium. |
-| `npm run test:browser:firefox` | Passou no Firefox real instalado, via suporte BiDi do Playwright. |
+| `npm run test:browser` | Passou: bateria existente, regressões administrativas e atualização de uma PWA antiga em Chromium. |
+| `npm run test:browser:firefox` | Passou no Firefox real instalado, via suporte BiDi do Playwright, incluindo atualização com cache antigo. |
 | `npm run build` | Pacote estático gerado com sucesso. |
 | `npm run prototype:archive` | 16 arquivos originais conferidos e intactos. |
 | `git diff --check` | Sem erros de formatação. |
@@ -52,6 +60,6 @@ Foram geradas capturas e conferidas as dimensões de 12 telas funcionais em 360,
 - O teste de ampliação usa zoom CSS de 200% na coordenação. Não representa uma conferência manual de zoom nativo de todas as telas nem um teste em aparelho físico.
 - Os serviços externos de mapas são bloqueados nas regressões. A atualização dos registros e dos detalhes é verificada; a disponibilidade das imagens dos mapas e do GPS real depende de conferência no ambiente publicado.
 - Não foi feita certificação de acessibilidade ou revisão exaustiva de todos os estados visuais. Os fluxos de recuperação dos cifrados antigos continuam dependentes das chaves e exportações já documentadas.
-- A publicação depende de autenticação Git disponível nesta sessão. O acesso SSH ao repositório foi recusado, e o GitHub CLI não possui sessão autenticada. A tentativa de envio e seu resultado serão informados na entrega; sem envio confirmado, o Actions e a nova versão no Pages não podem ser classificados como validados.
+- Os commits foram enviados por HTTPS, usando a autenticação Git já disponível. O envio por SSH continuou indisponível. A conferência final da publicação é registrada após o deploy da correção de atualização da PWA.
 
 Foi aplicada a skill simplify aos trechos alterados, separando a construção dos cartões da coordenação e a identificação do foco, além de substituir expressões condensadas por controle de fluxo direto. As baterias finais foram executadas após a simplificação.

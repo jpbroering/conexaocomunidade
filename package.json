@@ -8,11 +8,11 @@
     "start": "node scripts/serve-pages.mjs",
     "test": "node pages/tests/request-body.test.mjs && node pages/tests/prototype.test.mjs && node pages/tests/ui-refresh.test.mjs && node pages/tests/static.test.mjs",
     "test:pages": "npm test",
-    "test:browser": "node pages/tests/browser-check.mjs && node pages/tests/admin-browser-check.mjs",
+    "test:browser": "node pages/tests/browser-check.mjs && node pages/tests/admin-browser-check.mjs && node pages/tests/pwa-upgrade-check.mjs",
     "prototype:prepare": "node pages/manage.mjs prepare",
     "prototype:init": "node pages/manage.mjs init",
     "prototype:archive": "node pages/manage.mjs archive",
-    "test:browser:firefox": "BROWSER=firefox node pages/tests/admin-browser-check.mjs"
+    "test:browser:firefox": "BROWSER=firefox node pages/tests/admin-browser-check.mjs && BROWSER=firefox node pages/tests/pwa-upgrade-check.mjs"
   },
   "dependencies": {
     "@noble/hashes": "2.0.1",

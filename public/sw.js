@@ -15,7 +15,8 @@ self.addEventListener('message', event => { if (event.data?.type === 'ACTIVATE')
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== SCOPE.origin || !url.pathname.startsWith(SCOPE.pathname)) return;
-  // HTML versions script/style URLs; the cache belongs to this build already.
+  // Build fingerprints are part of script/style filenames. An older worker
+  // must never return a previous script for a new document.
   url.search = '';
   if (event.request.mode === 'navigate') event.respondWith(fetch(event.request).catch(() => caches.match(new URL('offline.html', SCOPE).href)));
   else if (PATHS.includes(url.href)) event.respondWith(caches.open(CACHE).then(cache => cache.match(url.href)).then(saved => saved || fetch(event.request)));

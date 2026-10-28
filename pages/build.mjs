@@ -75,7 +75,11 @@ async function publicationConfig(preview) {
   return null;
 }
 
-async function versionServiceWorker() {
+function versionedAssetPath(path, version) {
+  return path.replace(/\.(js|css)$/, '.' + version + '.$1');
+}
+
+async function versionServiceWorker(assetVersion) {
   const hash = createHash('sha256');
   async function fingerprint(directory) {
     const entries = await readdir(directory, { withFileTypes: true });
@@ -93,7 +97,8 @@ async function versionServiceWorker() {
   await fingerprint(output);
   const workerPath = resolve(output, 'sw.js');
   const worker = await readFile(workerPath, 'utf8');
-  await writeFile(workerPath, worker.replace('__BUILD_ID__', hash.digest('hex').slice(0, 16)));
+  const versionedWorker = worker.replace(/'(assets\/[^']+\.(?:js|css))'/g, (_, path) => "'" + versionedAssetPath(path, assetVersion) + "'");
+  await writeFile(workerPath, versionedWorker.replace('__BUILD_ID__', hash.digest('hex').slice(0, 16)));
 }
 
 async function versionInterfaceAssets() {
@@ -112,12 +117,24 @@ async function versionInterfaceAssets() {
   }
   await fingerprint(resolve(output, 'assets'));
   const version = hash.digest('hex').slice(0, 12);
+  const fingerprinted = new Set();
   for (const entry of await readdir(output)) {
     if (!entry.endsWith('.html')) continue;
     const path = resolve(output, entry);
     const html = await readFile(path, 'utf8');
-    await writeFile(path, html.replace(/\b(src|href)=(["'])(\.\/assets\/[^"'?]+\.(?:js|css))\2/g, (_, attribute, quote, url) => `${attribute}=${quote}${url}?v=${version}${quote}`));
+    const versioned = html.replace(/\b(src|href)=(["'])(\.\/assets\/[^"'?]+\.(?:js|css))\2/g, (_, attribute, quote, url) => {
+      fingerprinted.add(url);
+      const immutableUrl = versionedAssetPath(url, version);
+      return `${attribute}=${quote}${immutableUrl}?v=${version}${quote}`;
+    });
+    await writeFile(path, versioned);
   }
+  for (const url of fingerprinted) {
+    const source = resolve(output, url);
+    const target = versionedAssetPath(source, version);
+    await cp(source, target);
+  }
+  return version;
 }
 
 export async function buildPages({ preview = false } = {}) {
@@ -125,8 +142,8 @@ export async function buildPages({ preview = false } = {}) {
   await compileBrowserScripts();
   const config = await publicationConfig(preview);
   await writeFile(resolve(output, 'runtime-config.json'), JSON.stringify(config || { configured: false }));
-  await versionInterfaceAssets();
-  await versionServiceWorker();
+  const assetVersion = await versionInterfaceAssets();
+  await versionServiceWorker(assetVersion);
   console.log(`Pages: pacote gerado em dist-pages (${config ? 'configuração automática incluída' : 'prévia sem credenciais'}).`);
   return output;
 }
