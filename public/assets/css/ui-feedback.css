@@ -128,7 +128,7 @@ img[data-image-state="error"][hidden] { display: none !important; }
 :where(input, select, textarea, summary):focus-visible { outline: 3px solid #126654; outline-offset: 3px; }
 :where(h1, h2, h3, p, label, button, a) { overflow-wrap: anywhere; }
 .actions { flex-wrap: wrap; }
-dialog { max-height: calc(100dvh - 32px); max-width: calc(100vw - 32px); overscroll-behavior: contain; }
+dialog { max-height: calc(100dvh - 32px); overscroll-behavior: contain; }
 dialog .close, dialog #close-details { position: sticky; top: 0; z-index: 2; background: #fff; }
 @media (max-width: 520px) {
   body > header { flex-wrap: wrap; gap: 12px; padding: 16px; }

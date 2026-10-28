@@ -11,6 +11,7 @@ Implementado e verificado em 28/10/2026, com base fictícia independente.
 - O andamento da exclusão administrativa aparecia apenas no topo da página. A operação agora muda o texto do controle acionado, bloqueia as ações conflitantes e apresenta um aviso fixo na camada superior, inclusive com diálogo aberto. Cancelar a confirmação não inicia a operação.
 - Atualizações remotas preservam filtros, rolagem, foco identificável e escolhas do guia de rota. Cadastros removidos apresentam uma mensagem no detalhe aberto. Formulários modificados mantêm os campos e oferecem carregar a versão salva mediante confirmação de descarte; revisões antigas continuam rejeitadas na gravação.
 - A coordenação acompanha mudanças remotas sem substituir formulários modificados. Os dados de envio são capturados antes de desabilitar os controles. Edições em formulários diferentes do mesmo cadastro são acompanhadas separadamente.
+- A conferência visual no Pages identificou que uma regra compartilhada ampliava o diálogo de detalhes em desktop. A regra foi removida, preservando os limites definidos por cada página, e o teste passou a exigir largura de até 600 px no catálogo.
 - A seleção de arquivo deixou de marcar, por si só, os campos da empresa como não salvos: o upload tem sua própria confirmação remota.
 
 ## Padrões para manutenção

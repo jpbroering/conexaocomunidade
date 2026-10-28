@@ -98,6 +98,7 @@ try {
   await installClock(visitor);
   await visitor.goto(base);
   await visitor.locator(`.company-card[data-id="${company.id}"]`).click();
+  assert((await visitor.locator('#details').boundingBox()).width <= 600, 'shared responsive styles preserve the desktop dialog width');
   await visitor.locator('.detail-gallery img').last().scrollIntoViewIfNeeded();
   await visitor.waitForFunction(() => [...document.querySelectorAll('.detail-gallery img')].filter(img => img.naturalWidth > 1 || img.src.startsWith('blob:')).length === 2);
   const removedId = await panel.locator('.moderation-photo').first().getAttribute('data-id');
