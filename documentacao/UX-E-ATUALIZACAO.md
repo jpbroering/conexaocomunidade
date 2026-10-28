@@ -60,6 +60,13 @@ Foram geradas capturas e conferidas as dimensões de 12 telas funcionais em 360,
 - O teste de ampliação usa zoom CSS de 200% na coordenação. Não representa uma conferência manual de zoom nativo de todas as telas nem um teste em aparelho físico.
 - Os serviços externos de mapas são bloqueados nas regressões. A atualização dos registros e dos detalhes é verificada; a disponibilidade das imagens dos mapas e do GPS real depende de conferência no ambiente publicado.
 - Não foi feita certificação de acessibilidade ou revisão exaustiva de todos os estados visuais. Os fluxos de recuperação dos cifrados antigos continuam dependentes das chaves e exportações já documentadas.
-- Os commits foram enviados por HTTPS, usando a autenticação Git já disponível. O envio por SSH continuou indisponível. A conferência final da publicação é registrada após o deploy da correção de atualização da PWA.
+
+## Publicação confirmada
+
+Os commits foram enviados por HTTPS, usando a autenticação Git já disponível; o envio por SSH continuou indisponível. A correção final do cache está no commit `fb38212`. O [Actions da publicação](https://github.com/jpbroering/conexaocomunidade/actions/runs/40675117743) concluiu com sucesso, incluindo os testes e a conferência remota da base.
+
+O site publicado foi aberto em Chromium e Firefox real, apenas para leitura. Catálogo e mapa mostraram quatro registros, os detalhes mantiveram o limite original de largura em desktop e não houve erros JavaScript nessas páginas. O HTML referencia a versão `a315c6d388c4` nos nomes dos arquivos; os conteúdos de `prototype`, `ui-feedback`, catálogo, mapa e estilo de feedback foram comparados por SHA-256 com o pacote local e coincidiram. Capturas locais ficam em `.prototype/ux/published/`.
+
+Para receber a correção em uma aba já aberta, recarregar a página busca o HTML com os novos nomes. O cenário de migração com o worker antigo instalado passou nos testes em ambos os navegadores, sem apagar o armazenamento do usuário. A ativação explícita de uma nova PWA continua respeitando o aviso para salvar formulários antes de atualizar.
 
 Foi aplicada a skill simplify aos trechos alterados, separando a construção dos cartões da coordenação e a identificação do foco, além de substituir expressões condensadas por controle de fluxo direto. As baterias finais foram executadas após a simplificação.
