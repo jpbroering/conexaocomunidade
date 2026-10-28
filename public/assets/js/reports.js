@@ -35,6 +35,7 @@ if (reportForm) {
     const button = reportForm.querySelector("button[type=submit]"),
       status = reportEl("report-status");
     ccUI.setBusy(button, true, "Enviando…");
+    const finish = ccUI.startOperation(null, "Enviando relato…");
     status.hidden = false;
     ccUI.message(status, "Enviando relato…", "pending");
     const f = new FormData(reportForm),
@@ -59,6 +60,7 @@ if (reportForm) {
       ccUI.message(status, e.message, "error");
     } finally {
       reportBusy = false;
+      finish(status.textContent, status.dataset.state === "error" ? "error" : "success");
       ccUI.setBusy(button, false);
     }
   };
@@ -83,123 +85,132 @@ async function loadInbox({ quiet = false } = {}) {
     inboxLoaded = true;
     const list = reportEl("inbox-list");
     const snapshot = JSON.stringify([reportRows, !!data.readOnly]);
-    if (snapshot !== inboxSnapshot) {
-      inboxSnapshot = snapshot;
-      list.replaceChildren();
-      if (!reportRows.length) {
-        const p = document.createElement("p");
-        p.textContent = "Ainda não há relatos recebidos.";
-        list.append(p);
-      }
-      for (const row of reportRows) {
-        const card = document.createElement("article");
-        card.className = "panel";
-        card.style.marginTop = "18px";
-        const title = document.createElement("h2");
-        title.textContent = row.title;
-        const status = document.createElement("p");
-        status.className = "admin-record-status";
-        if (row.approval === "approved" || row.status === "Aprovado") status.classList.add("is-approved");
-        if (row.approval === "rejected" || row.status === "Rejeitado") status.classList.add("is-rejected");
-        status.textContent =
-          (row.read_at ? "" : "NOVO · ") +
-          row.status +
-          " · " +
-          new Date(row.created_at).toLocaleString("pt-BR");
-        const sender = document.createElement("p");
-        sender.textContent = row.anonymous
-          ? "Envio anônimo"
-          : "Nome: " + row.name + (row.contact ? " · Contato: " + row.contact : "");
-        const address = document.createElement("p");
-        address.textContent = "Local: " + row.address;
-        if (row.location && Number.isFinite(row.location.lat) && Number.isFinite(row.location.lng)) {
-          const link = document.createElement("a");
-          link.className = "secondary";
-          link.href =
-            "https://www.google.com/maps/search/?api=1&query=" +
-            row.location.lat +
-            "," +
-            row.location.lng;
-          link.target = "_blank";
-          link.rel = "noreferrer";
-          link.textContent =
-            "📍 Abrir localização fixa · precisão aproximada de " +
-            Math.round(row.location.accuracy) +
-            " m";
-          address.append(document.createElement("br"), link);
+    ccUI.preserveView(() => {
+      if (snapshot !== inboxSnapshot) {
+        inboxSnapshot = snapshot;
+        list.replaceChildren();
+        if (!reportRows.length) {
+          const p = document.createElement("p");
+          p.textContent = "Ainda não há relatos recebidos.";
+          list.append(p);
         }
-        const description = document.createElement("p");
-        description.style.whiteSpace = "pre-wrap";
-        description.style.overflowWrap = "anywhere";
-        description.textContent = row.description;
-        const actions = document.createElement("div");
-        actions.className = "actions";
-        for (const status of (data.readOnly ? [] : ["Lido", "Aprovado", "Em acompanhamento", "Resolvido", "Rejeitado"]).filter(value => value !== row.status)) {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.className = status === "Rejeitado" ? "danger" : "secondary";
-          button.textContent =
-            status === "Lido"
-              ? "Marcar como lido"
-              : status === "Rejeitado"
-                ? "Rejeitar relato"
-                : status === "Aprovado"
-                  ? "Aprovar relato"
-                  : status;
-          button.onclick = async () => {
-            if (
-              status === "Rejeitado" &&
-              !confirm(
-                "Rejeitar este relato por conteúdo impróprio ou fora do contexto? Ele continuará restrito à administração.",
+        for (const row of reportRows) {
+          const card = document.createElement("article");
+          card.className = "panel";
+          card.dataset.id = row.id;
+          card.style.marginTop = "18px";
+          const title = document.createElement("h2");
+          title.textContent = row.title;
+          const status = document.createElement("p");
+          status.className = "admin-record-status";
+          if (row.approval === "approved" || row.status === "Aprovado") status.classList.add("is-approved");
+          if (row.approval === "rejected" || row.status === "Rejeitado") status.classList.add("is-rejected");
+          status.textContent =
+            (row.read_at ? "" : "NOVO · ") +
+            row.status +
+            " · " +
+            new Date(row.created_at).toLocaleString("pt-BR");
+          const sender = document.createElement("p");
+          sender.textContent = row.anonymous
+            ? "Envio anônimo"
+            : "Nome: " + row.name + (row.contact ? " · Contato: " + row.contact : "");
+          const address = document.createElement("p");
+          address.textContent = "Local: " + row.address;
+          if (row.location && Number.isFinite(row.location.lat) && Number.isFinite(row.location.lng)) {
+            const link = document.createElement("a");
+            link.className = "secondary";
+            link.href =
+              "https://www.google.com/maps/search/?api=1&query=" +
+              row.location.lat +
+              "," +
+              row.location.lng;
+            link.target = "_blank";
+            link.rel = "noreferrer";
+            link.textContent =
+              "📍 Abrir localização fixa · precisão aproximada de " +
+              Math.round(row.location.accuracy) +
+              " m";
+            address.append(document.createElement("br"), link);
+          }
+          const description = document.createElement("p");
+          description.style.whiteSpace = "pre-wrap";
+          description.style.overflowWrap = "anywhere";
+          description.textContent = row.description;
+          const actions = document.createElement("div");
+          actions.className = "actions";
+          for (const status of (data.readOnly ? [] : ["Lido", "Aprovado", "Em acompanhamento", "Resolvido", "Rejeitado"]).filter(value => value !== row.status)) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.dataset.action = status;
+            button.className = status === "Rejeitado" ? "danger" : "secondary";
+            button.textContent =
+              status === "Lido"
+                ? "Marcar como lido"
+                : status === "Rejeitado"
+                  ? "Rejeitar relato"
+                  : status === "Aprovado"
+                    ? "Aprovar relato"
+                    : status;
+            button.onclick = async () => {
+              if (
+                status === "Rejeitado" &&
+                !confirm(
+                  "Rejeitar este relato por conteúdo impróprio ou fora do contexto? Ele continuará restrito à administração.",
+                )
               )
-            )
-              return;
-            if (reportBusy) return;
-            reportBusy = true;
-            ccUI.message(summary, "Salvando a revisão do relato…", "pending");
-            actions.setAttribute("aria-busy", "true");
-            actions.querySelectorAll("button").forEach((b) => (b.disabled = true));
-            try {
-              await reportCall("PATCH", { id: row.id, revision: row.revision, status });
-              await loadInbox({ quiet: true });
-            } catch (e) {
-              ccUI.message(reportEl("inbox-error"), e.message, "error");
-            } finally {
-              reportBusy = false;
-              actions.removeAttribute("aria-busy");
-              actions.querySelectorAll("button").forEach((b) => (b.disabled = false));
-            }
-          };
-          actions.append(button);
+                return;
+              if (reportBusy || inboxLoading) return;
+              reportBusy = true;
+              const finish = ccUI.startOperation(button, "Salvando revisão…", actions);
+              ccUI.message(summary, "Salvando a revisão do relato…", "pending");
+              actions.setAttribute("aria-busy", "true");
+              actions.querySelectorAll("button").forEach((b) => (b.disabled = true));
+              try {
+                await reportCall("PATCH", { id: row.id, revision: row.revision, status });
+                const updated = await loadInbox({ quiet: true });
+                finish(updated === false ? "Revisão salva; não foi possível atualizar a lista." : "Revisão salva.", updated === false ? "error" : "success");
+              } catch (e) {
+                ccUI.message(summary, "Não foi possível salvar a revisão.", "error");
+                ccUI.message(reportEl("inbox-error"), e.message, "error");
+                finish(e.message, "error");
+              } finally {
+                reportBusy = false;
+                actions.removeAttribute("aria-busy");
+                actions.querySelectorAll("button").forEach((b) => (b.disabled = false));
+              }
+            };
+            actions.append(button);
+          }
+          const photos = document.createElement("div");
+          photos.className = "report-photo-gallery";
+          for (let i = 0; i < (row.photoCount || row.images?.length || 0); i++) {
+            const image = document.createElement("img");
+            image.alt = "Foto anexada ao relato";
+            image.loading = "lazy";
+            image.src = row.images?.[i]
+              ? "data:" + row.images[i].type + ";base64," + row.images[i].body
+              : ccImage("/api/reports?id=" + encodeURIComponent(row.id) + "&photo=" + i);
+            photos.append(image);
+          }
+          card.append(title, status, sender, address, description, photos, actions);
+          list.append(card);
         }
-        const photos = document.createElement("div");
-        photos.className = "report-photo-gallery";
-        for (let i = 0; i < (row.photoCount || row.images?.length || 0); i++) {
-          const image = document.createElement("img");
-          image.alt = "Foto anexada ao relato";
-          image.loading = "lazy";
-          image.src = row.images?.[i]
-            ? "data:" + row.images[i].type + ";base64," + row.images[i].body
-            : ccImage("/api/reports?id=" + encodeURIComponent(row.id) + "&photo=" + i);
-          photos.append(image);
-        }
-        card.append(title, status, sender, address, description, photos, actions);
-        list.append(card);
       }
-    }
+    });
   } catch (e) {
     ccUI.message(reportEl("inbox-error"), e.message, "error");
     if (!inboxLoaded && [401, 403].includes(e.status)) {
       reportEl("inbox-tools").hidden = true;
-      summary.textContent = "Acesso reservado à administração.";
+      ccUI.message(summary, "Acesso reservado à administração.", "error");
       reportEl("inbox-login").hidden = false;
     } else if (!inboxLoaded) {
-      summary.textContent = "Não foi possível carregar os relatos. Tente novamente.";
+      ccUI.message(summary, "Não foi possível carregar os relatos. Tente novamente.", "error");
       reportEl("inbox-tools").hidden = true;
       reportEl("inbox-login").hidden = true;
     } else {
       ccUI.message(summary, "Não foi possível atualizar. Exibindo os dados carregados anteriormente.", "error");
     }
+    return false;
   } finally {
     inboxLoading = false;
     if (!quiet) {

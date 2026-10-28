@@ -18,7 +18,7 @@ let records = [],
   mapFitted = false,
   currentTab = "map",
   promptInstall = null;
-let searchTimer;
+let searchTimer, accountSnapshot;
 const norm = (s) =>
   String(s || "")
     .normalize("NFD")
@@ -140,20 +140,18 @@ function renderAccount() {
   link(actions, "Perfil, senha e sair", "./entrar.html");
 }
 function show(r) {
+  const sameRecord = selected?.id === r.id;
+  const oldGallery = sameRecord ? e("details-body").querySelector(".detail-gallery") : null;
+  const oldGuide = sameRecord ? e("details-body").querySelector("route-guide") : null;
   selected = r;
   const root = e("details-body");
   root.replaceChildren();
   text("h2", r.title || r.name, root);
   text("p", r.address || "Endereço não informado.", root);
-  for (const id of new Set([r.photo, ...(r.gallery || [])].filter(Boolean))) {
-    const img = document.createElement("img");
-    img.src =
-      ccImage((r.sourceType === "company" ? "/api/company-image?id=" : "/api/photo?id=") +
-      encodeURIComponent(id));
-    img.alt = "Foto de " + (r.title || r.name);
-    img.loading = "lazy";
-    root.append(img);
-  }
+  const gallery = oldGallery || document.createElement("div");
+  gallery.className = "detail-gallery";
+  ccUI.syncGallery(gallery, [r.photo, ...(r.gallery || [])], id => ccImage((r.sourceType === "company" ? "/api/company-image?id=" : "/api/photo?id=") + encodeURIComponent(id)), "Foto de " + (r.title || r.name));
+  root.append(gallery);
   if (r.products) {
     text("h3", "Produtos e serviços", root);
     text("p", r.products, root);
@@ -167,7 +165,7 @@ function show(r) {
   guide.dataset.address = r.address || "";
   guide.dataset.lat = r.lat ?? "";
   guide.dataset.lng = r.lng ?? "";
-  root.append(guide);
+  root.append(oldGuide && JSON.stringify(oldGuide.dataset) === JSON.stringify(guide.dataset) ? oldGuide : guide);
   if (Number.isFinite(r.lat) && Number.isFinite(r.lng)) {
     const b = text("button", "📍 Localizar no mapa", root);
     b.className = "secondary";
@@ -386,18 +384,27 @@ async function load() {
     } finally {
       clearTimeout(timeout);
     }
+    const changed = JSON.stringify(records) !== JSON.stringify(d.records);
     records = d.records;
     user = d.user;
     loaded = true;
     status("");
-    render();
-    renderAccount();
+    ccUI.preserveView(() => {
+      if (changed) render();
+      if (JSON.stringify(user) !== accountSnapshot) { renderAccount(); accountSnapshot = JSON.stringify(user); }
+      if (selected && e("place-details").open) {
+        const current = records.find(r => r.id === selected.id);
+        if (!current) e("details-body").textContent = "Este local não está mais disponível.";
+        else if (JSON.stringify(current) !== JSON.stringify(selected)) show(current);
+      }
+    });
   } catch (err) {
     status(
       "Não foi possível atualizar. " +
         (err.name === "AbortError" ? "Confira a conexão e tente novamente." : err.message),
       "error",
     );
+    return false;
   } finally {
     busy = false;
     finishLoading();
@@ -472,6 +479,4 @@ if (
   sessionStorage.setItem("cc-app", "1");
 tab(new URLSearchParams(location.search).get("view") || (appMode ? "home" : "map"));
 load();
-setInterval(() => {
-  if (!document.hidden && !e("place-details").open) load();
-}, 60000);
+ccUI.refreshWhileVisible(load, () => !busy);

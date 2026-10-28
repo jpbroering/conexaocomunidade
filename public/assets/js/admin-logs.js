@@ -34,6 +34,7 @@ async function load({ quiet = false } = {}) {
     ccUI.message(status, `${count} · Atualizado às ${checkedAt()}.`, "success");
   } catch (e) {
     ccUI.message(status, e.message, "error");
+    return false;
   } finally {
     loading = false;
     if (!quiet) {

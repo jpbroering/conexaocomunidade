@@ -5,6 +5,7 @@ const connected =
   location.hostname === "localhost" ||
   location.hostname === "127.0.0.1";
 let suggestionOpen = false;
+let detailId = null, detailSnapshot = "", finishOperation = null, operationResult = null;
 let catalogueLimit = 24;
 let catalogueState = "loading";
 let companyAccess = false;
@@ -42,6 +43,7 @@ const normalize = (s) =>
     .replace(/\bpaes\b/g, "pao")
     .replace(/\bcostureir[ao]s?\b/g, "costura");
 function tell(text, error = false) {
+  if (busy) operationResult = {text, state:error ? "error" : "success"};
   ccUI.message($("message"), text, error ? "error" : "info");
   $("message").classList.toggle("error", error);
 }
@@ -278,7 +280,7 @@ function media() {
   );
   form
     .querySelectorAll("[data-delete-photo]")
-    .forEach((b) => (b.onclick = () => removePhoto(b.dataset.deletePhoto)));
+    .forEach((b) => (b.onclick = () => removePhoto(b.dataset.deletePhoto, b)));
 }
 let replacement = null;
 function applyImages(result) {
@@ -291,7 +293,7 @@ function applyImages(result) {
   media();
   renderCatalogue();
 }
-async function removePhoto(id) {
+async function removePhoto(id, trigger) {
   if (busy || !companyId) return;
   if (
     !confirm(
@@ -299,7 +301,7 @@ async function removePhoto(id) {
     )
   )
     return;
-  setBusy(true);
+  setBusy(true, trigger, "Excluindo imagem…");
   try {
     applyImages(
       await api("/api/company-image", "DELETE", {
@@ -322,7 +324,23 @@ $("replace-file").onchange = (e) => {
   e.target.value = "";
   if (file && target) upload(file, target.kind, target.id);
 };
+function showRemoteChange() {
+  if ($("remote-company-change")) return;
+  const notice = document.createElement("div");
+  notice.id = "remote-company-change"; notice.className = "cc-feedback"; notice.setAttribute("role", "status");
+  notice.textContent = "Este cadastro mudou em outra sessão. Seus campos foram preservados. ";
+  const reload = document.createElement("button"); reload.type = "button"; reload.className = "secondary"; reload.textContent = "Carregar versão salva";
+  reload.onclick = () => {
+    if (busy || !confirm("Descartar os campos não salvos e carregar a versão mais recente?")) return;
+    const current = companies.find(c => c.id === companyId);
+    if (current) editCompany(current);
+    else { dirty = false; form.hidden = true; notice.remove(); ccUI.notify("Este cadastro não está mais disponível."); }
+  };
+  notice.append(reload); form.prepend(notice);
+  ccUI.notify("O cadastro mudou em outra sessão. Seus campos foram preservados.");
+}
 function editCompany(c) {
+  $("remote-company-change")?.remove();
   form.hidden = adminAccess && !c;
   document.querySelector(".business-layout").classList.toggle("admin-list-only", adminAccess && !c);
   companyId = c?.id || null;
@@ -413,12 +431,20 @@ async function load() {
       ? "Acesse sua empresa para concluir o cadastro ou atualizar as informações do seu negócio."
       : "Primeiro, faça seu cadastro no sistema. Depois, adicione as informações e as fotos do seu negócio.";
     $("access-notice").hidden = true;
+    const changed = JSON.stringify(companies) !== JSON.stringify(data.companies);
     companies = data.companies;
     catalogueState = "ready";
     if (["owner", "company-admin"].includes(data.user?.role)) showAdminNotice();
-    directoryInfo(data);
-    renderCatalogue();
-    renderOwned();
+    ccUI.preserveView(() => {
+      if (changed) { directoryInfo(data); renderCatalogue(); renderOwned(); }
+      refreshDetails();
+      const current = companies.find(c => c.id === companyId);
+      if (!busy && companyId && current?.revision !== companyRevision) {
+        if (dirty) showRemoteChange();
+        else if (current) editCompany(current);
+        else { form.hidden = true; ccUI.notify("Este cadastro não está mais disponível.", "info"); }
+      }
+    });
     if (!data.user) {
       $("connected-profile").hidden = true;
       $("admin-report-notice").hidden = true;
@@ -510,13 +536,21 @@ function dataFromForm() {
     published: form.elements.namedItem("published").checked,
   };
 }
-function setBusy(value) {
+function setBusy(value, trigger = $("save-company"), label = "Salvando…") {
+  if (value && !busy) {
+    operationResult = null;
+    finishOperation = ccUI.startOperation(trigger, label);
+  }
+  if (!value && finishOperation) {
+    finishOperation(operationResult?.text || "Operação concluída.", operationResult?.state || "success");
+    finishOperation = null;
+  }
   busy = value;
   ccUI.setBusy($("save-company"), value, "Salvando…");
   form.querySelectorAll("button,input,textarea,select").forEach((b) => (b.disabled = value));
   form.setAttribute("aria-busy", String(value));
 }
-form.addEventListener("input", () => (dirty = true));
+form.addEventListener("input", event => { if (event.target.type !== "file") dirty = true; });
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (busy) return;
@@ -570,7 +604,7 @@ async function upload(file, kind, replace = null) {
     tell("Use uma imagem de até 5 MB.", true);
     return;
   }
-  setBusy(true);
+  setBusy(true, null, "Enviando imagem…");
   try {
     const id = await ensureCompany();
     const fd = new FormData();
@@ -582,7 +616,7 @@ async function upload(file, kind, replace = null) {
     const r = await ccFetch("/api/company-image", { method: "POST", body: fd });
     const result = await readApiResponse(r);
     applyImages(result);
-    setBusy(true);
+    setBusy(true, null, "Enviando imagem…");
     tell(
       result.approval === "pending"
         ? "Imagem salva e aguardando aprovação da administração."
@@ -609,7 +643,7 @@ $("gallery-file").onchange = (e) => {
 $("delete-company").onclick = async () => {
   if (!companyId || busy) return;
   if (!confirm("Excluir esta empresa e todas as imagens de teste enviadas para ela?")) return;
-  setBusy(true);
+  setBusy(true, $("delete-company"), "Excluindo empresa…");
   try {
     await api("/api/companies", "DELETE", { id: companyId, revision: companyRevision });
     editCompany(null);
@@ -692,8 +726,21 @@ function routeUrl(c, mode = "driving") {
   if (origin) params.set("origin", origin.lat + "," + origin.lng);
   return "https://www.google.com/maps/dir/?" + params;
 }
+function refreshDetails() {
+  if (!$("details").open || !detailId) return;
+  const current = companies.find(c => c.id === detailId);
+  if (!current) {
+    $("details-content").textContent = "Este cadastro não está mais disponível.";
+    detailSnapshot = "";
+  } else if (JSON.stringify(current) !== detailSnapshot) showDetails(current);
+}
 function showDetails(c) {
   if (!c) return;
+  const sameRecord = detailId === c.id;
+  const oldGallery = sameRecord ? $("details-content").querySelector(".detail-gallery") : null;
+  const oldGuide = sameRecord ? $("details-content").querySelector("route-guide") : null;
+  const oldMode = sameRecord ? $("route-mode")?.value : null;
+  detailId = c.id; detailSnapshot = JSON.stringify(c);
   const point =
     c.lat != null && c.lng != null
       ? `<iframe class="map" title="Localização de ${escape(c.name)}" src="https://www.openstreetmap.org/export/embed.html?bbox=${[Math.max(-180, c.lng - 0.012), Math.max(-90, c.lat - 0.008), Math.min(180, c.lng + 0.012), Math.min(90, c.lat + 0.008)].join("%2C")}&amp;layer=mapnik&amp;marker=${c.lat}%2C${c.lng}"></iframe>`
@@ -704,12 +751,18 @@ function showDetails(c) {
     ? `<div class="service-table-wrap"><table class="service-table"><caption>Serviços e produtos</caption><thead><tr><th scope="col">O que oferece</th><th scope="col">Referência</th></tr></thead><tbody>${c.services.map((s) => `<tr><td>${escape(s.name)}</td><td>${escape(s.unit)}</td></tr>`).join("")}</tbody></table></div>`
     : "";
   $("details-content").innerHTML =
-    `<article class="detail">${c.facade ? `<img class="storefront-photo" src="${escape(img(c.facade))}" alt="Fachada de ${escape(c.name)}">` : ""}${c.logo ? `<img class="detail-logo" src="${escape(img(c.logo))}" alt="Logo enviada pela empresa">` : ""}<h2>${escape(c.name)}</h2>${c.sourceType === "survey" ? `<p class="notice">Levantamento público de ${escape(c.sourceDate)}. Ainda não confirmado pelo responsável neste projeto.</p><p>Bairro: ${escape(c.district)}</p><p>Atendimento: ${escape(c.attendance)}</p><p>${escape(c.notes)}</p><a href="${escape(c.source)}" target="_blank" rel="noreferrer">Consultar fonte do levantamento</a>` : ""}<p>${escape(c.category)}</p>${c.provider ? `<p>Responsável: ${escape(c.provider)}</p>` : ""}<p>${escape(c.slogan)}</p><p>${escape(c.description)}</p><h3>O que vende ou oferece</h3><p>${escape(c.products || "")}</p>${servicesTable}<h3>Endereço</h3><p class="card-address">${escape(c.address?.trim() || "Endereço não informado.")}</p>${c.hours ? `<p>Horário: ${escape(c.hours)}</p>` : ""}${c.contact ? `<p>Telefone: ${escape(c.contact)}</p>${/^\+?[0-9]{8,15}$/.test(phone) ? `<a class="secondary" href="tel:${phone}">Ligar para o comércio</a>` : ""}` : ""}${origin ? `<p class="distance">${escape(distance(c))}</p>` : ""}<h3>Como chegar</h3><route-guide data-title="${escape(c.name)}" data-address="${escape(c.address)}" data-lat="${c.lat ?? ""}" data-lng="${c.lng ?? ""}"></route-guide>${route ? `<label>Como você vai?<select id="route-mode"><option value="driving">Carro</option><option value="walking">A pé</option><option value="bicycling">Bicicleta</option><option value="transit">Transporte público</option></select></label><a id="google-route" class="primary route-link" href="${escape(route)}" target="_blank" rel="noopener noreferrer">Abrir rota no Google Maps</a><p class="footnote">O Google Maps mostra o trajeto, a distância pelas ruas e a estimativa de tempo disponíveis. Ao abrir a rota, o destino e, se informada, sua localização serão enviados ao Google. Confira se o destino corresponde ao comércio.</p>` : "<p>O comércio ainda não informou endereço ou coordenadas.</p>"}${point}<h3>Fotos do comércio</h3><div class="detail-gallery">${(c.gallery || []).map((id) => `<img src="${escape(img(id))}" alt="Foto enviada pela empresa">`).join("")}</div></article>`;
+    `<article class="detail">${c.facade ? `<img class="storefront-photo" src="${escape(img(c.facade))}" alt="Fachada de ${escape(c.name)}">` : ""}${c.logo ? `<img class="detail-logo" src="${escape(img(c.logo))}" alt="Logo enviada pela empresa">` : ""}<h2>${escape(c.name)}</h2>${c.sourceType === "survey" ? `<p class="notice">Levantamento público de ${escape(c.sourceDate)}. Ainda não confirmado pelo responsável neste projeto.</p><p>Bairro: ${escape(c.district)}</p><p>Atendimento: ${escape(c.attendance)}</p><p>${escape(c.notes)}</p><a href="${escape(c.source)}" target="_blank" rel="noreferrer">Consultar fonte do levantamento</a>` : ""}<p>${escape(c.category)}</p>${c.provider ? `<p>Responsável: ${escape(c.provider)}</p>` : ""}<p>${escape(c.slogan)}</p><p>${escape(c.description)}</p><h3>O que vende ou oferece</h3><p>${escape(c.products || "")}</p>${servicesTable}<h3>Endereço</h3><p class="card-address">${escape(c.address?.trim() || "Endereço não informado.")}</p>${c.hours ? `<p>Horário: ${escape(c.hours)}</p>` : ""}${c.contact ? `<p>Telefone: ${escape(c.contact)}</p>${/^\+?[0-9]{8,15}$/.test(phone) ? `<a class="secondary" href="tel:${phone}">Ligar para o comércio</a>` : ""}` : ""}${origin ? `<p class="distance">${escape(distance(c))}</p>` : ""}<h3>Como chegar</h3><route-guide data-title="${escape(c.name)}" data-address="${escape(c.address)}" data-lat="${c.lat ?? ""}" data-lng="${c.lng ?? ""}"></route-guide>${route ? `<label>Como você vai?<select id="route-mode"><option value="driving">Carro</option><option value="walking">A pé</option><option value="bicycling">Bicicleta</option><option value="transit">Transporte público</option></select></label><a id="google-route" class="primary route-link" href="${escape(route)}" target="_blank" rel="noopener noreferrer">Abrir rota no Google Maps</a><p class="footnote">O Google Maps mostra o trajeto, a distância pelas ruas e a estimativa de tempo disponíveis. Ao abrir a rota, o destino e, se informada, sua localização serão enviados ao Google. Confira se o destino corresponde ao comércio.</p>` : "<p>O comércio ainda não informou endereço ou coordenadas.</p>"}${point}<h3>Fotos do comércio</h3><div class="detail-gallery"></div></article>`;
+  let galleryNode = $("details-content").querySelector(".detail-gallery");
+  if (oldGallery) { galleryNode.replaceWith(oldGallery); galleryNode = oldGallery; }
+  ccUI.syncGallery(galleryNode, c.gallery || [], img);
+  const newGuide = $("details-content").querySelector("route-guide");
+  if (oldGuide && newGuide && JSON.stringify(oldGuide.dataset) === JSON.stringify(newGuide.dataset)) newGuide.replaceWith(oldGuide);
+  if (oldMode && $("route-mode")) { $("route-mode").value = oldMode; $("google-route").href = routeUrl(c, oldMode); }
   if ($("route-mode"))
     $("route-mode").onchange = (e) => {
       $("google-route").href = routeUrl(c, e.target.value);
     };
-  $("details").showModal();
+  if (!$("details").open) $("details").showModal();
 }
 function suggestions() {
   const box = $("search-suggestions");
@@ -837,10 +890,7 @@ if (connected) {
         switchView("business-panel");
     }
   });
-  setInterval(() => {
-    if (document.visibilityState === "visible" && currentView === "client" && !accessRequired)
-      load();
-  }, 60000);
+  ccUI.refreshWhileVisible(load, () => !busy && !loading && !accessRequired);
 } else {
   catalogueState = "error";
   renderCatalogue();

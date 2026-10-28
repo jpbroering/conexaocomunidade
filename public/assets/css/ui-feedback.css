@@ -92,3 +92,50 @@ button:focus-visible, a:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .cc-loading::before, .cc-feedback[data-state="pending"]::before { animation: none; }
 }
+
+/* Shared operation feedback stays in the top layer, including over open dialogs. */
+.cc-operation-notice {
+  position: fixed;
+  inset: auto 16px max(16px, env(safe-area-inset-bottom)) auto;
+  margin: 0;
+  width: min(440px, calc(100vw - 32px));
+  max-height: min(45dvh, 260px);
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #b7d6ca;
+  border-radius: 12px;
+  background: #fff;
+  color: #183f33;
+  box-shadow: 0 8px 28px #18333226;
+  z-index: 10001;
+  overflow-wrap: anywhere;
+}
+.cc-operation-notice[hidden] { display: none; }
+.cc-operation-notice[data-state="error"] { border-color: #a33030; background: #fff2f0; }
+.cc-operation-notice > span { flex: 1; }
+.cc-operation-notice button { flex: 0 0 44px; min-height: 44px; font-size: 24px; background: transparent; border: 0; color: inherit; }
+.cc-refresh-status { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; color: #526763; font-size: 13px; }
+.cc-image-error { display: flex; flex-direction: column; gap: 8px; padding: 12px; font-size: 14px; overflow-wrap: anywhere; }
+img[data-image-state="loading"] { background: #e8efec; min-height: 44px; }
+img[data-image-state="error"][hidden] { display: none !important; }
+.cc-empty-gallery { margin: 8px 0; color: #526763; }
+:where(main, section, article, aside, form, .actions, .form-grid) { min-width: 0; }
+:where(button, .primary, .secondary, summary) { min-height: 44px; }
+:where(input, select, textarea) { max-width: 100%; min-width: 0; }
+:where(input, select, textarea, summary):focus-visible { outline: 3px solid #126654; outline-offset: 3px; }
+:where(h1, h2, h3, p, label, button, a) { overflow-wrap: anywhere; }
+.actions { flex-wrap: wrap; }
+dialog { max-height: calc(100dvh - 32px); max-width: calc(100vw - 32px); overscroll-behavior: contain; }
+dialog .close, dialog #close-details { position: sticky; top: 0; z-index: 2; background: #fff; }
+@media (max-width: 520px) {
+  body > header { flex-wrap: wrap; gap: 12px; padding: 16px; }
+  body > main { max-width: 100%; }
+  dialog { padding: 18px; }
+  .moderation-photo { width: 100%; margin: 8px 0; }
+  .cc-operation-notice { inset-inline: 16px; width: auto; }
+}
+:where(input:not([type="checkbox"]):not([type="radio"]), select, body > header > a) { min-height: 44px; }
+body > header > a { align-content: center; }

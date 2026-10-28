@@ -117,12 +117,17 @@ test('concurrent commits preserve independent edits and reject stale touched rec
   await c.put(paths[0], seed.records.get(paths[0]) + '  '); await d.put(paths[0], seed.records.get(paths[0]) + '   ');
   await c.commit(); await assert.rejects(() => d.commit(), Conflict);
 });
-test('network failures, rate limits, invalid tokens and corrupt envelopes do not report success', async () => {
+test('network failures, rate limits, invalid tokens and corrupt envelopes do not report success', async t => {
+  t.mock.timers.enable({apis:['Date'], now:Date.now()});
   const { github, visitor, company } = await setup();
   github.failure = () => new Response('', { status: 401 });
   assert.match((await call(visitor, 'companies')).data.error, /token/);
   github.failure = () => new Response('', { status: 429, headers: { 'retry-after': '30' } });
   assert.equal((await call(visitor, 'companies')).status, 429);
+  const beforeCooldown = github.calls.length;
+  assert.equal((await call(visitor, 'companies')).status, 429);
+  assert.equal(github.calls.length, beforeCooldown, 'respect Retry-After without sending another request');
+  t.mock.timers.tick(30001);
   github.failure = () => { throw new TypeError('offline'); };
   assert.equal((await call(visitor, 'companies')).status, 503);
   github.failure = null;

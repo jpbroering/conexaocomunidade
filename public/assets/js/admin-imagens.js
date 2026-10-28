@@ -39,31 +39,36 @@ async function api(url, method = "GET", body) {
     }),
   );
 }
-async function act(work) {
+async function act(work, trigger, label = "Salvando alteração…") {
   if (actionPending || loading) return;
   actionPending = true;
+  const finish = ccUI.startOperation(trigger, label, root);
+  let result = "", state = "success";
   try {
-    root.inert = true;
-    root.setAttribute("aria-busy", "true");
-    message("Salvando alteração…", "pending");
+    message(label, "pending");
     await work();
+    const updated = await load({ quiet: true, afterWrite: true });
+    result = updated ? "Alteração salva. Lista atualizada." : "Alteração salva; não foi possível atualizar a lista. Tente atualizar novamente.";
+    state = updated ? "success" : "error";
+  } catch (e) { result = e.message; state = "error"; }
+  finally {
     actionPending = false;
-    const updated = await load({ quiet: true });
-    message(updated ? "Alteração salva. Lista atualizada." : "Alteração salva; não foi possível atualizar a lista. Tente atualizar novamente.", updated ? "success" : "error");
-  } catch (e) {
-    message(e.message, "error");
-  } finally {
-    actionPending = false;
-    root.inert = false;
-    root.removeAttribute("aria-busy");
+    message(result, state);
+    finish(result, state);
   }
 }
-function button(parent, text, work) {
+function button(parent, text, work, confirmation) {
   const b = document.createElement("button");
   b.type = "button";
+  b.dataset.action = text;
   b.className = "secondary";
   b.textContent = text;
-  b.onclick = () => act(work);
+  b.onclick = () => {
+    if (actionPending || loading) return;
+    if (confirmation && !confirm(confirmation)) return;
+    const label = text.startsWith("Excluir") ? "Excluindo imagem…" : text === "Aprovar" ? "Aprovando imagem…" : "Salvando revisão…";
+    act(work, b, label);
+  };
   parent.append(b);
 }
 function upload(parent, label, work) {
@@ -73,12 +78,13 @@ function upload(parent, label, work) {
   input.type = "file";
   input.accept = "image/jpeg,image/png,image/webp";
   input.onchange = () => {
-    if (input.files[0]) act(() => work(input.files[0]));
+    if (input.files[0]) act(() => work(input.files[0]), input, "Enviando imagem…");
   };
   l.append(input);
   parent.append(l);
 }
 function render(data, about) {
+  const previousImages = new Map([...root.querySelectorAll("img[data-media-id]")].map(img => [img.dataset.mediaId, img]));
   root.replaceChildren();
   for (const c of data.companies) {
     const panel = document.createElement("section");
@@ -89,14 +95,16 @@ function render(data, about) {
     for (const a of c.images) {
       const card = document.createElement("article");
       card.className = "moderation-photo";
-      const img = document.createElement("img");
-      img.src = ccImage("/api/company-image?id=" + a.id);
+      card.dataset.id = a.id;
+      const img = previousImages.get(a.id) || document.createElement("img");
+      if (!img.dataset.mediaId) img.src = ccImage("/api/company-image?id=" + a.id);
+      img.dataset.mediaId = a.id;
       img.alt = "Foto da empresa";
       const state = a.approval || "pending";
       const p = document.createElement("p");
       p.className = `moderation-photo-status approval-${state}`;
       p.setAttribute("role", "status");
-      p.textContent = `${a.kind} · ${approvalLabels[state] || approvalLabels.pending}`;
+      p.textContent = `${{gallery: "Galeria", logo: "Logo", facade: "Fachada"}[a.kind] || "Foto"} · ${approvalLabels[state] || approvalLabels.pending}`;
       card.append(img, p);
       for (const [text, approval] of [
         ["Aprovar", "approved"],
@@ -114,14 +122,11 @@ function render(data, about) {
         f.set("image", file);
         return api("/api/company-image", "POST", f);
       });
-      button(card, "Excluir", () => {
-        if (confirm("Excluir esta imagem?"))
-          return api("/api/company-image", "DELETE", {
+      button(card, "Excluir", () => api("/api/company-image", "DELETE", {
             company: c.id,
             id: a.id,
             revision: c.revision,
-          });
-      });
+          }), "Excluir esta imagem?");
       panel.append(card);
     }
     upload(panel, "Adicionar foto aprovada", (file) => {
@@ -160,16 +165,13 @@ function render(data, about) {
       return api("/api/about-images", "POST", f);
     });
     if (row?.image || row?.defaultSrc)
-      button(card, "Excluir foto", () => {
-        if (confirm("Excluir esta foto?"))
-          return api("/api/about-images", "DELETE", { slot, revision: row.revision });
-      });
+      button(card, "Excluir foto", () => api("/api/about-images", "DELETE", { slot, revision: row.revision }), "Excluir esta foto?");
     section.append(card);
   }
   root.append(section);
 }
-async function load({ quiet = false } = {}) {
-  if (loading || actionPending) return false;
+async function load({ quiet = false, afterWrite = false } = {}) {
+  if (loading || (actionPending && !afterWrite)) return false;
   loading = true;
   if (!quiet) {
     ccUI.setBusy(refresh, true, "Atualizando…");
@@ -179,7 +181,7 @@ async function load({ quiet = false } = {}) {
   try {
     const [data, about] = await Promise.all([api("/api/admin-images"), api("/api/about-images")]);
     const snapshot = JSON.stringify([data, about]);
-    if (snapshot !== lastSnapshot) render(data, about);
+    if (snapshot !== lastSnapshot) ccUI.preserveView(() => render(data, about));
     lastSnapshot = snapshot;
     const counts = data.companies.flatMap(company => company.images).reduce((total, image) => {
       total[image.approval || "pending"] = (total[image.approval || "pending"] || 0) + 1;
@@ -202,4 +204,4 @@ async function load({ quiet = false } = {}) {
 refresh.onclick = () => load();
 message("Carregando fila de imagens…", "pending");
 load();
-ccUI.refreshWhileVisible(() => load({ quiet: true }));
+ccUI.refreshWhileVisible(() => load({ quiet: true }), () => !actionPending && !loading);

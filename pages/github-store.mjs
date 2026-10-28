@@ -36,8 +36,10 @@ export class GithubStore {
     this.cachedBytes = 0;
     this.trees = new Map();
     this.snapshots = new Map();
+    this.retryAt = 0;
   }
   async api(path, options = {}) {
+    if (Date.now() < this.retryAt) throw new StoreError(`O GitHub limitou as requisições. Aguarde ${Math.ceil((this.retryAt - Date.now()) / 1000)} segundos antes de tentar novamente.`, 429);
     let response;
     try {
       response = await this.request(this.base + path, {
@@ -48,7 +50,11 @@ export class GithubStore {
     if (!response.ok) {
       if (response.status === 429 || response.headers.get('x-ratelimit-remaining') === '0' || response.headers.has('retry-after')) {
         const delay = response.headers.get('retry-after');
-        throw new StoreError(`O GitHub limitou as requisições. ${delay ? `Aguarde ${delay} segundos` : 'Aguarde alguns instantes'} antes de tentar novamente.`, 429);
+        const seconds = delay == null ? NaN : Number(delay);
+        const retryDate = delay && !Number.isFinite(seconds) ? Date.parse(delay) : NaN;
+        const resetDate = Number(response.headers.get('x-ratelimit-reset')) * 1000;
+        this.retryAt = Math.max(Date.now() + 30000, Number.isFinite(seconds) ? Date.now() + seconds * 1000 : retryDate || 0, resetDate || 0);
+        throw new StoreError(`O GitHub limitou as requisições. Aguarde ${Math.ceil((this.retryAt - Date.now()) / 1000)} segundos antes de tentar novamente.`, 429);
       }
       const message = response.status === 401 ? 'O token do protótipo expirou ou é inválido. Avise a equipe responsável.'
         : response.status === 403 ? 'O GitHub bloqueou a operação. Confira as permissões do token e os limites de requisições.'

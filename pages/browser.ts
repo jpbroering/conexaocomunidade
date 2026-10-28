@@ -23,21 +23,51 @@ async function ccFetch(path: string, options?: RequestInit) {
 const imagePrefix = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=#cc-image=';
 function ccImage(path: string) { return imagePrefix + encodeURIComponent(path); }
 const images = new Map<HTMLImageElement, string>();
-const pending = new WeakSet<HTMLImageElement>();
-function releaseImages() { for (const [img, url] of images) { URL.revokeObjectURL(url); img.removeAttribute('src'); } images.clear(); }
+const pending = new Map<HTMLImageElement, string>();
+const failures = new Map<HTMLImageElement, HTMLElement>();
+function releaseImages() {
+  for (const [img, url] of images) {
+    URL.revokeObjectURL(url);
+    if (img.dataset.ccSource) img.src = img.dataset.ccSource;
+  }
+  images.clear();
+}
 async function resolveImage(img: HTMLImageElement) {
   const raw = img.getAttribute('src');
   if (!raw?.startsWith(imagePrefix) || pending.has(img)) return;
-  pending.add(img);
+  pending.set(img, raw);
+  failures.get(img)?.remove(); failures.delete(img);
+  img.dataset.ccSource = raw;
+  img.dataset.imageState = 'loading';
+  img.hidden = false;
+  img.setAttribute('aria-busy', 'true');
+  let url: string | undefined;
   try {
     const response = await ccFetch(decodeURIComponent(raw.slice(imagePrefix.length)));
     if (!response.ok) { const data = await response.json(); throw Error(data.error); }
     const blob = await response.blob();
     if (!img.isConnected || img.getAttribute('src') !== raw) return;
     const old = images.get(img); if (old) URL.revokeObjectURL(old);
-    const url = URL.createObjectURL(blob); images.set(img, url); img.src = url;
-  } catch (error: any) { img.title = error.message; img.alt = img.alt || 'Imagem indisponível'; }
-  finally { pending.delete(img); }
+    url = URL.createObjectURL(blob); images.set(img, url); img.src = url;
+    await img.decode();
+    if (img.src === url) img.dataset.imageState = 'ready';
+  } catch (error: any) {
+    if (!img.isConnected || (img.getAttribute('src') !== raw && img.src !== url)) return;
+    if (url) { URL.revokeObjectURL(url); images.delete(img); }
+    img.dataset.imageState = 'error'; img.hidden = true;
+    const fallback = document.createElement('span'); fallback.className = 'cc-image-error';
+    const text = document.createElement('span'); text.textContent = 'Não foi possível carregar a imagem.';
+    text.title = error.message;
+    const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'secondary'; retry.textContent = 'Tentar imagem novamente';
+    retry.onclick = event => { event.stopPropagation(); img.src = raw; resolveImage(img); };
+    fallback.append(text, retry); img.after(fallback); failures.set(img, fallback);
+  } finally {
+    pending.delete(img);
+    img.removeAttribute('aria-busy');
+    // A source can change during a request. Do not leave the newer source unobserved.
+    const current = img.getAttribute('src');
+    if (img.isConnected && current !== raw && current?.startsWith(imagePrefix)) scan(img);
+  }
 }
 const visible = 'IntersectionObserver' in window ? new IntersectionObserver(entries => {
   for (const entry of entries) if (entry.isIntersecting) { visible!.unobserve(entry.target); resolveImage(entry.target as HTMLImageElement); }
@@ -49,6 +79,10 @@ function scan(node: Node) {
 }
 new MutationObserver(records => {
   for (const record of records) record.type === 'attributes' ? scan(record.target) : record.addedNodes.forEach(scan);
+  for (const [img, fallback] of failures) {
+    if (!img.isConnected) { fallback.remove(); failures.delete(img); }
+    else if (!fallback.isConnected) img.after(fallback);
+  }
   for (const [img, url] of images) if (!img.isConnected || img.src !== url) { URL.revokeObjectURL(url); images.delete(img); }
 }).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
 window.addEventListener('pagehide', releaseImages);

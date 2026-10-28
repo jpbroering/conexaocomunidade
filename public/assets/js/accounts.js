@@ -25,6 +25,7 @@ async function action(form, work) {
   buttons.forEach(({ button }) => { button.disabled = true; });
   form.setAttribute("aria-busy", "true");
   status(label, "pending");
+  const finishOperation = ["login", "signup-company"].includes(form.id) ? () => {} : ccUI.startOperation(null, label);
   const finishLoading = ["login", "signup-company"].includes(form.id)
     ? ccUI.showPageLoading(form.id === "login" ? "Entrando na sua conta…" : "Criando sua conta…")
     : () => {};
@@ -34,6 +35,8 @@ async function action(form, work) {
     status(e.message, "error");
   } finally {
     pending = false;
+    const output = el("status");
+    finishOperation(output?.dataset.state === "pending" ? "Operação concluída." : output?.textContent, output?.dataset.state === "error" ? "error" : "success");
     finishLoading();
     ccUI.setBusy(submit, false);
     buttons.forEach(({ button, disabled }) => { button.disabled = disabled; });
@@ -138,41 +141,45 @@ async function users({ quiet = false } = {}) {
     el("admin").hidden = false;
     el("owner-access").hidden = true;
     const snapshot = JSON.stringify(d.users);
-    if (snapshot !== usersSnapshot) {
-      list.replaceChildren();
-      if (!d.users.length) list.textContent = "Nenhuma conta cadastrada ainda.";
-      for (const u of d.users) {
-        const row = document.createElement("article");
-        row.className = "panel";
-        const p = document.createElement("p");
-        p.textContent =
-          u.name +
-          " · " +
-          u.username +
-          " · " +
-          (["owner", "company-admin"].includes(u.role)
-            ? "ADM · acesso completo"
-            : u.role === "company"
-              ? "Empresa"
-              : u.role === "coordination" ? "Coordenação" : "Conta antiga") +
-          " · " +
-          (u.active ? "Ativa" : "Desativada");
-        const toggle = document.createElement("button");
-        toggle.type = "button";
-        toggle.textContent = u.active ? "Desativar acesso" : "Reativar acesso";
-        toggle.onclick = () =>
-          action(row, async () => {
-            await call("/api/test-users", "POST", {
-              action: "active",
-              username: u.username,
-              revision: u.revision,
-              active: !u.active,
-            });
+    ccUI.preserveView(() => {
+      if (snapshot !== usersSnapshot) {
+        list.replaceChildren();
+        if (!d.users.length) list.textContent = "Nenhuma conta cadastrada ainda.";
+        for (const u of d.users) {
+          const row = document.createElement("article");
+          row.className = "panel";
+          row.dataset.id = u.username;
+          const p = document.createElement("p");
+          p.textContent =
+            u.name +
+            " · " +
+            u.username +
+            " · " +
+            (["owner", "company-admin"].includes(u.role)
+              ? "ADM · acesso completo"
+              : u.role === "company"
+                ? "Empresa"
+                : u.role === "coordination" ? "Coordenação" : "Conta antiga") +
+            " · " +
+            (u.active ? "Ativa" : "Desativada");
+          const toggle = document.createElement("button");
+          toggle.type = "button";
+          toggle.dataset.action = "active";
+          toggle.textContent = u.active ? "Desativar acesso" : "Reativar acesso";
+          toggle.onclick = () =>
+            action(row, async () => {
+              await call("/api/test-users", "POST", {
+                action: "active",
+                username: u.username,
+                revision: u.revision,
+                active: !u.active,
+              });
             status("Permissão atualizada. Sessões antigas foram encerradas.");
-            await users();
+            await users({quiet:true});
           });
         const reset = document.createElement("button");
         reset.type = "button";
+        reset.dataset.action = "reset";
         reset.textContent = "Redefinir senha";
         reset.onclick = () => {
           resetUser = u;
@@ -185,11 +192,13 @@ async function users({ quiet = false } = {}) {
       }
       usersSnapshot = snapshot;
     }
+    });
     const active = d.users.filter(user => user.active).length;
     el("users-meta").textContent = `${d.users.length} contas · ${active} ativas · ${d.users.length - active} desativadas · Conferido às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
     if (!quiet) status("Lista de contas atualizada.", "success");
   } catch (e) {
     status(e.message, "error");
+    return false;
   } finally {
     usersLoading = false;
     if (!quiet) {
@@ -216,7 +225,7 @@ if (el("users")) {
       e.target.reset();
       e.target.hidden = true;
       status("Senha redefinida. Sessões antigas foram encerradas.");
-      await users();
+      await users({quiet:true});
     });
   };
   el("cancel-reset").onclick = () => {

@@ -3,6 +3,11 @@
   if (customElements.get("route-guide")) return;
   class RouteGuide extends HTMLElement {
     connectedCallback() {
+      if (this.shadowRoot) {
+        window.addEventListener("cc-android-ready", this.nativeReady);
+        document.addEventListener("visibilitychange", this.visibility);
+        return;
+      }
       this.requestId = 0;
       this.muted = true;
       this.origin = null;
@@ -40,10 +45,13 @@
       }
     }
     disconnectedCallback() {
-      window.removeEventListener("cc-android-ready", this.nativeReady);
-      this.requestId++;
-      this.cancelVoice();
-      document.removeEventListener("visibilitychange", this.visibility);
+      queueMicrotask(() => {
+        if (this.isConnected) return;
+        window.removeEventListener("cc-android-ready", this.nativeReady);
+        this.requestId++;
+        this.cancelVoice();
+        document.removeEventListener("visibilitychange", this.visibility);
+      });
     }
     cancelVoice() {
       if (window.__CC_ANDROID__) {
